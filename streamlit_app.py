@@ -55,39 +55,48 @@ def get_global_data():
         
         # 컬럼명 표준화 (제공된 코드 요구사항 반영)
         normalized_cols = {
-            '연도': '연도',
-            '월': '월',
-            '여객': '여객_계',
-            '운항': '운항_계',
-            '항공사': '항공사',
+            '여객_계(명)': '여객_계',
+            '운항_계(편)': '운항_계',
+            '항공사명': '항공사',
             '도시': '도시명',
             '국가': '국가',
             '노선': '노선',
             '공항': '공항'
         }
         
-        # 키워드 매핑 (더욱 정교하게)
+        # 1차: 정확히 일치하는 것부터 매핑
         final_rename = {}
         for col in df_av.columns:
-            for key, target in normalized_cols.items():
-                if key in col:
-                    final_rename[col] = target
+            if col in normalized_cols:
+                final_rename[col] = normalized_cols[col]
         
-        # 특수 케이스: 'IATA'를 '공항'으로 매핑 (공항이 없는 경우)
-        if 'IATA' in df_av.columns and '공항' not in final_rename.values():
-            final_rename['IATA'] = '공항'
+        # 2차: 키워드 기반 매핑 (아직 매핑되지 않은 대상만)
+        keywords = {
+            '여객': '여객_계',
+            '운항': '운항_계',
+            '도시': '도시명',
+            '연도': '연도',
+            '월': '월'
+        }
+        
+        mapped_targets = set(final_rename.values())
+        for col in df_av.columns:
+            if col in final_rename: continue
+            for kw, target in keywords.items():
+                if kw in col and target not in mapped_targets:
+                    final_rename[col] = target
+                    mapped_targets.add(target)
+                    break
             
         df_av = df_av.rename(columns=final_rename)
         
-        # 필수 컬럼 강제 보장 (폴백)
+        # 3차: 중복된 컬럼명이 생겼을 경우 첫 번째만 남김
+        df_av = df_av.loc[:, ~df_av.columns.duplicated()]
+        
+        # 필수 컬럼 강제 보장 (폴백: 값이 없으면 0으로 채운 더미라도 생성)
         for target in ['여객_계', '운항_계', '도시명', '연도', '월']:
             if target not in df_av.columns:
-                # 유사한 컬럼이라도 있으면 강제 할당
-                print(f"Warning: {target} not found, searching fallback...")
-                for col in df_av.columns:
-                    if target.split('_')[0] in col:
-                        df_av[target] = df_av[col]
-                        break
+                df_av[target] = 0
         
         global_data['aviation'] = df_av
     
