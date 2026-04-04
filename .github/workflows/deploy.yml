@@ -29,11 +29,14 @@ jobs:
           cd hanatour-dashboard
           npm install
 
+      - name: Debug Workspace Structure
+        run: ls -R
+
       - name: Preprocess Data
         run: |
           pip install pandas numpy pyarrow
           cd hanatour-dashboard
-          python3 preprocess.py
+          python3 -u preprocess.py
 
       - name: Build
         run: |
