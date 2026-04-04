@@ -18,30 +18,28 @@ def preprocess():
     if os.path.exists(aviation_path):
         print("Aviation file found. Loading...")
         df_av = pd.read_csv(aviation_path, encoding='utf-8-sig')
-        df_av.columns = df_av.columns.str.strip()
+        df_av.columns = [c.strip() for c in df_av.columns]
         print(f"Aviation columns: {df_av.columns.tolist()}")
         
-        # 컬럼명 유연한 매핑
+        # 컬럼명 매핑 (키워드 기반)
         col_map = {}
         for col in df_av.columns:
-            col_strip = col.strip()
-            if '연도' in col_strip or '년도' in col_strip: col_map['연도'] = col
-            if '월' in col_strip: col_map['월'] = col
-            if '여객' in col_strip and '명' in col_strip: col_map['여객'] = col
-            if '도시' in col_strip: col_map['도시'] = col
+            if '연도' in col or '년도' in col: col_map['연도'] = col
+            if '월' in col: col_map['월'] = col
+            if '여객' in col: col_map['여객'] = col
+            if '도시' in col: col_map['도시'] = col
             
-        print(f"Detected column mapping: {col_map}")
+        print(f"Final mapping: {col_map}")
         
-        # 필드가 누락되지 않았는지 확인
-        required = ['연도', '월', '여객', '도시']
-        missing = [r for r in required if r not in col_map]
-        if missing:
-            print(f"ERROR: Missing required columns: {missing}")
-            # 폴백 (기존 상정된 이름)
-            if '연도' not in col_map: col_map['연도'] = '연도'
-            if '월' not in col_map: col_map['월'] = '월'
-            if '여객' not in col_map: col_map['여객'] = '여객_계(명)'
-            if '도시' not in col_map: col_map['도시'] = '도시'
+        # 필수 컬럼이 매핑되었는지 검증
+        for key in ['연도', '월', '여객', '도시']:
+            if key not in col_map:
+                print(f"Error: {key} column not found in {df_av.columns.tolist()}")
+                # 수동 폴백
+                if key == '연도': col_map['연도'] = df_av.columns[0]
+                if key == '월': col_map['월'] = df_av.columns[1]
+                if key == '여객': col_map['여객'] = df_av.columns[5] if len(df_av.columns) > 5 else df_av.columns[-1]
+                if key == '도시': col_map['도시'] = df_av.columns[8] if len(df_av.columns) > 8 else df_av.columns[-1]
 
         # 연도별/월별 추이 (전체)
         av_monthly = df_av.groupby([col_map['연도'], col_map['월']])[col_map['여객']].sum().reset_index()
