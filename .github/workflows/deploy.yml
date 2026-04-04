@@ -31,13 +31,14 @@ jobs:
 
       - name: Preprocess Data
         run: |
-          pip install pandas
+          pip install pandas numpy pyarrow
           cd hanatour-dashboard
-          python preprocess.py
+          python3 preprocess.py
 
       - name: Build
         run: |
           cd hanatour-dashboard
+          npm install
           npm run build
 
       - name: Setup Pages
