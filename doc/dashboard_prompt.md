@@ -99,4 +99,3 @@ C:\Users\Administrator\Desktop\fcicb6\pj2\pj2-3-3\data\hanatour_reviews.csv
 - **Visualization**: Plotly Express
 - **Data Engine**: Pandas
 - **Runtime**: Python 3.x (uv 가상환경)
-sp
