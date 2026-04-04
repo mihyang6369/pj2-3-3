@@ -142,7 +142,7 @@ with tab1:
             df_base['연월'] = pd.to_datetime(df_base['연도_str'] + '-' + df_base['월_str'] + '-01', errors='coerce')
             
             # --- 상단 메인 지표 ---
-            t_pass = df_base['여객_계'].sum()
+            t_pass = float(df_base['여객_계'].sum())
             
             m1, m2 = st.columns(2)
             m1.metric("전체 누적 여객 (2020-2025)", f"{t_pass:,.0f}명")
@@ -231,9 +231,9 @@ with tab2:
             
             # --- 상단 주요 지표 ---
             kpi1, kpi2, kpi3 = st.columns(3)
-            total_p = df_tgt['여객_계'].sum()
-            total_f = df_tgt['운항_계'].sum()
-            avg_p = df_tgt['여객_계'].mean()
+            total_p = float(df_tgt['여객_계'].sum())
+            total_f = float(df_tgt['운항_계'].sum())
+            avg_p = float(df_tgt['여객_계'].mean()) if not df_tgt.empty else 0
             
             kpi1.metric(f"{sel_city} 누적 여객", f"{total_p:,.0f}명")
             kpi2.metric(f"{sel_city} 누적 운항", f"{total_f:,.0f}회")
