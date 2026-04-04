@@ -54,28 +54,41 @@ def get_global_data():
         df_av.columns = [c.strip() for c in df_av.columns]
         
         # 컬럼명 표준화 (제공된 코드 요구사항 반영)
-        rename_dict = {
-            '여객_계(명)': '여객_계',
-            '운항_계(편)': '운항_계',
-            '항공사명': '항공사',
-            '도시': '도시명'
+        normalized_cols = {
+            '연도': '연도',
+            '월': '월',
+            '여객': '여객_계',
+            '운항': '운항_계',
+            '항공사': '항공사',
+            '도시': '도시명',
+            '국가': '국가',
+            '노선': '노선',
+            '공항': '공항'
         }
-        # 키워드 기반 자동 매핑 보완
-        for col in df_av.columns:
-            if '여객' in col and '계' in col: rename_dict[col] = '여객_계'
-            if '운항' in col and '계' in col: rename_dict[col] = '운항_계'
-            if '도시' in col: rename_dict[col] = '도시명'
-            if '공항' in col and '경유지' not in col: rename_dict[col] = '공항'
-            if '국가' in col: rename_dict[col] = '국가'
-            if '노선' in col: rename_dict[col] = '노선'
-            if '항공사' in col: rename_dict[col] = '항공사'
-            
-        df_av = df_av.rename(columns=rename_dict)
         
-        # 보조 컬럼 생성
-        if '공항' not in df_av.columns and 'IATA' in df_av.columns:
-            df_av['공항'] = df_av['IATA']
+        # 키워드 매핑 (더욱 정교하게)
+        final_rename = {}
+        for col in df_av.columns:
+            for key, target in normalized_cols.items():
+                if key in col:
+                    final_rename[col] = target
+        
+        # 특수 케이스: 'IATA'를 '공항'으로 매핑 (공항이 없는 경우)
+        if 'IATA' in df_av.columns and '공항' not in final_rename.values():
+            final_rename['IATA'] = '공항'
             
+        df_av = df_av.rename(columns=final_rename)
+        
+        # 필수 컬럼 강제 보장 (폴백)
+        for target in ['여객_계', '운항_계', '도시명', '연도', '월']:
+            if target not in df_av.columns:
+                # 유사한 컬럼이라도 있으면 강제 할당
+                print(f"Warning: {target} not found, searching fallback...")
+                for col in df_av.columns:
+                    if target.split('_')[0] in col:
+                        df_av[target] = df_av[col]
+                        break
+        
         global_data['aviation'] = df_av
     
     # 나) 목적지 통계 데이터
