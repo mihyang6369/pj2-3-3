@@ -21,14 +21,27 @@ def preprocess():
         df_av.columns = df_av.columns.str.strip()
         print(f"Aviation columns: {df_av.columns.tolist()}")
         
+        # 컬럼명 유연한 매핑
+        col_map = {}
+        for col in df_av.columns:
+            if '연도' in col or '년도' in col: col_map['연도'] = col
+            if '월' in col: col_map['월'] = col
+            if '여객' in col and '명' in col: col_map['여객'] = col
+            if '도시' in col: col_map['도시'] = col
+            
+        print(f"Detected column mapping: {col_map}")
+        
         # 연도별/월별 추이 (전체)
-        av_monthly = df_av.groupby(['연도', '월'])['여객_계(명)'].sum().reset_index()
+        av_monthly = df_av.groupby([col_map['연도'], col_map['월']])[col_map['여객']].sum().reset_index()
+        av_monthly.columns = ['연도', '월', '여객_계(명)']
+        
         # 타겟 도시별 추이 (다낭, 나트랑, 싱가포르)
         target_cities = ['Danang', 'Nha Trang', 'Singapore', '다낭', '나트랑', '싱가포르']
-        df_target = df_av[df_av['도시'].isin(target_cities)].copy()
+        df_target = df_av[df_av[col_map['도시']].isin(target_cities)].copy()
         city_norm = {'Danang': '다낭', 'Nha Trang': '나트랑', 'Singapore': '싱가포르', '다낭': '다낭', '나트랑': '나트랑', '싱가포르': '싱가포르'}
-        df_target['도시_norm'] = df_target['도시'].map(city_norm)
-        av_target = df_target.groupby(['연도', '월', '도시_norm'])['여객_계(명)'].sum().reset_index()
+        df_target['도시_norm'] = df_target[col_map['도시']].map(city_norm)
+        av_target = df_target.groupby([col_map['연도'], col_map['월'], '도시_norm'])[col_map['여객']].sum().reset_index()
+        av_target.columns = ['연도', '월', '도시_norm', '여객_계(명)']
     else:
         print("WARNING: Aviation file not found!")
         av_monthly = pd.DataFrame(columns=['연도', '월', '여객_계(명)'])
