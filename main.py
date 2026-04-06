@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import numpy as np
 from src.data_loader import load_all_data, preprocess_and_merge
 from src.analytics_engine import AnalyticsEngine
 from src.ui_elements import render_analysis_box, apply_custom_style, PRIMARY_COLOR, SECONDARY_COLOR
@@ -13,6 +14,7 @@ st.set_page_config(page_title="HanaTour Travel Insight Dashboard", layout="wide"
 apply_custom_style()
 
 # 데이터 분석 엔진 초기화
+@st.cache_resource
 def get_engine():
     return AnalyticsEngine()
 
@@ -23,7 +25,7 @@ engine = get_engine()
 # ---------------------------------------------------------
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/ko/c/c5/Hanatour_logo.png", width=150)
 st.sidebar.markdown("### 🔍 분석 필터")
-cities = list(engine.df['대상도시'].unique())
+cities = list(engine.df['대상도시'].unique()) if not engine.df.empty else ['다낭', '나트랑', '싱가포르']
 selected_cities = st.sidebar.multiselect("도시 선택", options=cities, default=cities)
 rating_range = st.sidebar.slider("평점 범위", 1.0, 5.0, (1.0, 5.0))
 

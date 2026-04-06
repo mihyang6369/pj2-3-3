@@ -11,7 +11,7 @@ def load_all_data():
     
     files = {
         'reviews': 'hanatour_reviews.csv',
-        'aviation': 'filtered_aviation_performance.csv',
+        'aviation': 'processed_aviation_performance.csv',
         'danang': 'hanatour_danang_integrated.csv',
         'nhatrang': 'hanatour_nhatrang_integrated.csv',
         'singapore': 'hanatour_singapore_integrated.csv'

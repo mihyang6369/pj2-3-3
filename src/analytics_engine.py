@@ -25,32 +25,42 @@ class AnalyticsEngine:
     # --- [기존 대시보드 대응용 핵심 분석 메서드] ---
     
     def get_yearly_aviation_performance(self):
-        if self.aviation_df.empty: return pd.DataFrame(columns=['연도', '유임승객(명)'])
+        if self.aviation_df.empty or '유임승객(명)' not in self.aviation_df.columns: 
+            return pd.DataFrame(columns=['연도', '유임승객(명)'])
         return self.aviation_df.groupby('연도')['유임승객(명)'].sum().reset_index()
 
     def get_monthly_aviation_performance(self):
-        if self.aviation_df.empty: return pd.DataFrame(columns=['월', '유임승객(명)'])
+        if self.aviation_df.empty or '유임승객(명)' not in self.aviation_df.columns: 
+            return pd.DataFrame(columns=['월', '유임승객(명)'])
         return self.aviation_df.groupby('월')['유임승객(명)'].mean().reset_index()
 
     def get_cumulative_performance_by_country(self):
-        if self.aviation_df.empty: return pd.DataFrame()
+        if self.aviation_df.empty or '유임승객(명)' not in self.aviation_df.columns:
+            return pd.DataFrame(columns=['국가', '유임승객(명)'])
         return self.aviation_df.groupby('국가')['유임승객(명)'].sum().reset_index().sort_values('유임승객(명)', ascending=False)
 
     def get_cumulative_performance_by_city(self):
-        if self.aviation_df.empty: return pd.DataFrame()
+        if self.aviation_df.empty or '유임승객(명)' not in self.aviation_df.columns:
+            return pd.DataFrame(columns=['도시', '유임승객(명)'])
         return self.aviation_df.groupby('도시명')['유임승객(명)'].sum().reset_index().sort_values('유임승객(명)', ascending=False).rename(columns={'도시명': '도시'})
 
     def get_specific_cities_aviation_yearly(self):
+        if self.aviation_df.empty or '유임승객(명)' not in self.aviation_df.columns:
+            return pd.DataFrame(columns=['연도', '도시', '유임승객(명)'])
         cities = ['DAD', 'CXR', 'SIN']
         mask = self.aviation_df['공항'].isin(cities)
         return self.aviation_df[mask].groupby(['연도', '공항'])['유임승객(명)'].sum().reset_index().rename(columns={'공항': '도시'})
 
     def get_specific_cities_aviation_monthly(self):
+        if self.aviation_df.empty or '유임승객(명)' not in self.aviation_df.columns:
+            return pd.DataFrame(columns=['월', '도시', '유임승객(명)'])
         cities = ['DAD', 'CXR', 'SIN']
         mask = self.aviation_df['공항'].isin(cities)
         return self.aviation_df[mask].groupby(['월', '공항'])['유임승객(명)'].mean().reset_index().rename(columns={'공항': '도시'})
 
     def get_airline_share_in_specific_cities(self):
+        if self.aviation_df.empty or '유임승객(명)' not in self.aviation_df.columns:
+            return pd.DataFrame(columns=['도시', '항공사명', '유임승객(명)'])
         cities = ['DAD', 'CXR', 'SIN']
         mask = self.aviation_df['공항'].isin(cities)
         airline_data = self.aviation_df[mask].groupby(['공항', '항공사명'])['유임승객(명)'].sum().reset_index()
