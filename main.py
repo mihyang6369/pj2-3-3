@@ -352,6 +352,22 @@ if selected_tab == "📊 하나투어 판매 상품 요약":
                                    points="all", color_discrete_sequence=px.colors.qualitative.Pastel)
             st.plotly_chart(fig_rating_box, use_container_width=True)
             
+        # 도시별 수치 요약 테이블 (평균 및 중위값) 추가
+        st.write("#### 📊 도시별 가격 및 평점 요약 통계")
+        summary_df = filtered_df.groupby('대상도시').agg({
+            '성인가격': ['mean', 'median'],
+            '평점': ['mean', 'median']
+        })
+        # 컬럼명 가독성 있게 변경
+        summary_df.columns = ['가격(평균)', '가격(중위값)', '평점(평균)', '평점(중위값)']
+        # 스타일 포맷팅 적용하여 출력
+        st.dataframe(summary_df.style.format({
+            '가격(평균)': '{:,.0f}원', 
+            '가격(중위값)': '{:,.0f}원',
+            '평점(평균)': '{:.2f}점', 
+            '평점(중위값)': '{:.2f}점'
+        }), use_container_width=True)
+            
         render_analysis_box(
             "가격 및 평점 분포 해석",
             "박스플롯(Box Plot)을 활용하여 도시별 상품 가격 상하위 25% 구간 및 통계적 이상치를 추출함.",
@@ -719,62 +735,83 @@ if selected_tab == "🔍 리뷰 및 전략 심층 분석":
         # 차트를 1열 내부에 표시합니다.
         st.plotly_chart(fig_bubble, use_container_width=True)
 
-    # [데이터 분석 헬퍼 함수] 도시별/쇼핑횟수별 상품 등록 수를 산출하기 위해 원본 CSV들을 로드합니다.
+    # [데이터 분석 헬퍼 함수] 공급(상품수)과 수요(리뷰수)를 통합 집계합니다.
     @st.cache_data
-    def get_city_shopping_volume_stats():
+    def get_supply_demand_stats(_df):
         """
-        [Tab 4] 각 도시에서 쇼핑 횟수별로 몇 개의 상품이 등록되어 있는지(공급량) 집계합니다.
+        [Tab 4] 도시/쇼핑별 고유 상품 수(공급)와 리뷰 건수(수요)를 집계합니다.
         """
-        import os
-        data_dir = r'data'
-        files = [
-            'hanatour_danang_airtel_integrated.csv', 'hanatour_danang_integrated.csv', 
-            'hanatour_danang_tour_ticket_integrated.csv', 'hanatour_nhatrang_airtel_integrated.csv', 'hanatour_nhatrang_integrated.csv', 
-            'hanatour_nhatrang_tour_ticket_integrated.csv', 'hanatour_singapore_airtel_integrated.csv', 'hanatour_singapore_integrated.csv', 
-            'hanatour_singapore_tour_ticket_integrated.csv'
-        ]
+        temp_df = _df.copy()
+        temp_df['쇼핑횟수'] = pd.to_numeric(temp_df['쇼핑횟수'], errors='coerce').fillna(0).astype(int)
         
-        combined_list = []
-        for f_name in files:
-            f_path = os.path.join(data_dir, f_name)
-            if os.path.exists(f_path):
-                tmp_df = pd.read_csv(f_path, encoding='utf-8-sig', usecols=lambda x: x in ['대상도시', '도시', '쇼핑횟수', '대표상품코드'])
-                if '대상도시' in tmp_df.columns: tmp_df.rename(columns={'대상도시': '도시'}, inplace=True)
-                if '도시' not in tmp_df.columns or tmp_df['도시'].isnull().all():
-                    tmp_df['도시'] = '다낭' if 'danang' in f_name else ('나트랑' if 'nhatrang' in f_name else '싱가포르')
-                if '쇼핑횟수' in tmp_df.columns:
-                    combined_list.append(tmp_df[['도시', '쇼핑횟수', '대표상품코드']])
+        # 1. 수요(리뷰 건수) 집계
+        demand = temp_df.groupby(['대상도시', '쇼핑횟수']).size().reset_index(name='리뷰건수')
         
-        if not combined_list: return pd.DataFrame()
-        full_raw = pd.concat(combined_list, ignore_index=True).drop_duplicates('대표상품코드')
-        full_raw['쇼핑횟수'] = pd.to_numeric(full_raw['쇼핑횟수'], errors='coerce').fillna(0).astype(int)
-        final_stats = full_raw.groupby(['도시', '쇼핑횟수']).size().reset_index(name='상품수')
-        return final_stats
+        # 2. 공급(고유 상품 수) 집계 - 중복 제거된 상품코드 기준
+        supply = temp_df.groupby(['대상도시', '쇼핑횟수'])['상품코드'].nunique().reset_index(name='상품수')
+        
+        # 3. 데이터 통합
+        combined = pd.merge(demand, supply, on=['대상도시', '쇼핑횟수'], how='outer').fillna(0)
+        return combined
 
-    # 집계 함수 실행
-    city_shop_vol = get_city_shopping_volume_stats()
+    # 집계 데이터 준비
+    comparison_stats = get_supply_demand_stats(filtered_df)
 
-    # --- 제 2열: 도시별 쇼핑 횟수별 상품수 통계표 ---
-    with b_col2:
-        st.write("#### 📊 쇼핑 횟수별 등록수")
-        if not city_shop_vol.empty:
-            # 테이블 가독성을 위해 데이터프레임 표시
-            st.dataframe(city_shop_vol.sort_values(['도시', '쇼핑횟수']), hide_index=True, use_container_width=True)
+    # --- [10-A] 시장 반응 분석 (수요: 리뷰 건수) ---
+    st.markdown("#### 📊 10-A. 시장 반응 분석 (수요: 리뷰 건수)")
+    st.caption("실제 고객이 예약하고 리뷰를 남긴 '시장 화력' 지표입니다.")
+    
+    dem_col1, dem_col2 = st.columns([1, 2])
+    
+    with dem_col1:
+        st.write("**리뷰 건수 통계표**")
+        if not comparison_stats.empty:
+            # 리뷰건수 기준 내림차순 정렬하여 표 표시
+            st.dataframe(comparison_stats[['대상도시', '쇼핑횟수', '리뷰건수']].sort_values('리뷰건수', ascending=False), 
+                         hide_index=True, use_container_width=True)
         else:
             st.info("데이터 부족")
+            
+    with dem_col2:
+        if not comparison_stats.empty:
+            # 리뷰 건수 시각화 (Sunburst 또는 Bar)
+            fig_dem_bar = px.bar(comparison_stats, x='대상도시', y='리뷰건수', color='쇼핑횟수', 
+                                title="도시별/쇼핑정책별 리뷰 발생 분포",
+                                text_auto=True, color_continuous_scale=px.colors.sequential.OrRd)
+            st.plotly_chart(fig_dem_bar, use_container_width=True)
 
-    # --- 제 3열: 공급량 시각화 ---
-    with b_col3:
-        st.write("#### 📈 공급 비중")
-        if not city_shop_vol.empty:
-            # 막대 그래프로 도시별 쇼핑 정책 분포 시각화
-            fig_vol_bar = px.bar(city_shop_vol, x='도시', y='상품수', color='쇼핑횟수', 
-                                title="쇼핑 정책 분포", 
-                                color_continuous_scale=px.colors.sequential.Tealgrn)
-            # 차트를 3열 내부에 표시합니다.
-            st.plotly_chart(fig_vol_bar, use_container_width=True)
+    st.markdown("---")
+
+    # --- [10-B] 상품 공급 분석 (공급: 상품 수) ---
+    st.markdown("#### 📦 10-B. 상품 공급 분석 (공급: 상품 수)")
+    st.caption("하나투어가 시장에 깔아놓은 '인벤토리(공급량)' 지표입니다.")
+    
+    sup_col1, sup_col2 = st.columns([1, 2])
+    
+    with sup_col1:
+        st.write("**고유 상품 수 통계표**")
+        if not comparison_stats.empty:
+            # 상품수 기준 내림차순 정렬하여 표 표시
+            st.dataframe(comparison_stats[['대상도시', '쇼핑횟수', '상품수']].sort_values('상품수', ascending=False), 
+                         hide_index=True, use_container_width=True)
         else:
             st.info("데이터 부족")
+            
+    with sup_col2:
+        if not comparison_stats.empty:
+            # 상품 수 시각화
+            fig_sup_bar = px.bar(comparison_stats, x='대상도시', y='상품수', color='쇼핑횟수', 
+                                title="도시별/쇼핑정책별 고유 상품 공급 분포",
+                                text_auto=True, color_continuous_scale=px.colors.sequential.Blues)
+            st.plotly_chart(fig_sup_bar, use_container_width=True)
+
+    # 통합 분석 해석 박스
+    render_analysis_box(
+        "수요와 공급의 불일치(Gap) 분석",
+        "상단 '리뷰 건수(수요)'와 하단 '상품 수(공급)'를 수직으로 대조하여 시장의 효율성을 진단함.",
+        "리뷰 건수가 폭발적인 쇼핑 횟수 구간(수요)과 실제 상품이 집중된 구간(공급)이 일치하지 않는다면, 이는 '고객이 원하는 상품'과 '회사가 팔고 싶은 상품' 사이의 간극을 의미합니다. "
+        "예를 들어 싱가포르의 경우 상품 수 대비 리뷰가 압도적으로 높다면, 해당 도시의 공급량을 대폭 늘려야 하는 '기회 구간'임을 시사합니다."
+    )
 
     # 분석 해석 박스 업데이트
     render_analysis_box(
