@@ -2,8 +2,9 @@ import pandas as pd
 import os
 import numpy as np
 from typing import Tuple, Dict
-# 데이터 디렉토리 경로 설정
-DATA_DIR = r'c:\Users\Administrator\Desktop\fcicb6\pj2\pj2-3-3\data'
+# 데이터 디렉토리 경로 설정 (상대 경로로 변경하여 배포 환경 호환성 확보)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, 'data')
 def load_all_data() -> Dict[str, pd.DataFrame]:
     """
     모든 분석에 필요한 CSV 파일들을 로드합니다 (패키지, 에어텔, 투어/티켓 포함).
