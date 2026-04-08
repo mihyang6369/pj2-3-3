@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import numpy as np
 from src.data_loader import load_all_data, preprocess_and_merge
 from src.analytics_engine import AnalyticsEngine
 from src.ui_elements import render_analysis_box, apply_custom_style, PRIMARY_COLOR, SECONDARY_COLOR
@@ -14,43 +13,35 @@ st.set_page_config(page_title="HanaTour Travel Insight Dashboard", layout="wide"
 apply_custom_style()
 
 # 데이터 분석 엔진 초기화
-@st.cache_resource
 def get_engine():
     return AnalyticsEngine()
 
 engine = get_engine()
 
 # ---------------------------------------------------------
-# 2. 사이드바 필터 섹션
+# ---------------------------------------------------------
+# 2. 사이드바 메뉴 (탭 대체)
 # ---------------------------------------------------------
 st.sidebar.image("https://upload.wikimedia.org/wikipedia/ko/c/c5/Hanatour_logo.png", width=150)
-st.sidebar.markdown("### 🔍 분석 필터")
-cities = list(engine.df['대상도시'].unique()) if not engine.df.empty else ['다낭', '나트랑', '싱가포르']
-selected_cities = st.sidebar.multiselect("도시 선택", options=cities, default=cities)
-rating_range = st.sidebar.slider("평점 범위", 1.0, 5.0, (1.0, 5.0))
 
-# 필터링된 데이터 반영
-filtered_df = engine.df[
-    (engine.df['대상도시'].isin(selected_cities)) &
-    (engine.df['평점'] >= rating_range[0]) &
-    (engine.df['평점'] <= rating_range[1])
+tab_names = [
+    "📈 항공 성과 추이", "📍 도시별 통합 EDA", "📊 하나투어 판매 상품 요약", 
+    "🔍 리뷰 및 전략 심층 분석", "🛡️ 리스크 모니터링", "✨ 맞춤 추천 위저드"
 ]
+selected_tab = st.sidebar.radio("📋 분석 메뉴 선택", tab_names)
+
+filtered_df = engine.df
 
 # ---------------------------------------------------------
-# 3. 메인 타이틀 및 탭 구성
+# 3. 메인 타이틀
 # ---------------------------------------------------------
 st.title("✈️ 하나투어 여행 상품 성과 및 전략 분석")
 st.markdown("가정 기반의 상품 분석 및 시뮬레이션을 위한 통합 데이터 분석 도구입니다.")
 
-tabs = st.tabs([
-    "📈 항공 성과 추이", "📍 도시별 통합 EDA", "📊 판매 상품 요약", "🔍 리뷰 심층 분석", 
-     "🛡️ 리스크 모니터링", "✨ 맞춤 상품 추천 위저드"
-])
-
 # ---------------------------------------------------------
 # 탭 1: 항공 성과 추이 (Yearly/Monthly/Country/City)
 # ---------------------------------------------------------
-with tabs[0]:
+if selected_tab == "📈 항공 성과 추이":
     st.subheader("✈️ 글로벌 항공 성과 및 시장 데이터 분석")
     
     col1, col2 = st.columns(2)
@@ -108,10 +99,11 @@ with tabs[0]:
             "중단거리 핵심 거점 도시(다낭, 방콕 등)에 대한 상품 집중도를 유지하면서도, 누적 실적 성장세가 뚜렷한 신규 도시 발굴이 병행되어야 함."
         )
 
+
 # ---------------------------------------------------------
 # 탭 2: 3개 도시(다낭/나트랑/싱가포르) 항공 분석
 # ---------------------------------------------------------
-with tabs[1]:
+if selected_tab == "📍 도시별 통합 EDA":
     st.subheader("📍 핵심 3개 도시(다낭/나트랑/싱가포르) 항공 분석")
     
     col1, col2, col3 = st.columns(3)
@@ -156,11 +148,15 @@ with tabs[1]:
             "FSC 비중이 높은 도시들의 경우 가격 민감도가 낮을 것."
         )
 
+
+# ---------------------------------------------------------
+# 탭 3: 판매 상품 요약 (사용자님이 만족하셨던 3열 교차 분석 포함)
+# ---------------------------------------------------------
 # ---------------------------------------------------------
 # 탭 3: 판매상품분석
 # ---------------------------------------------------------
-with tabs[2]:
-    st.header("📦 판매 상품 포트폴리오 요약")
+if selected_tab == "📊 하나투어 판매 상품 요약":
+    st.header("📦 하나투어 판매 상품 요약")
     
     # [방어 로직] 필수 컬럼 존재 여부 확인
     if '상품군' not in filtered_df.columns:
@@ -211,18 +207,14 @@ with tabs[2]:
         f"하나투어 통합 데이터베이스 내 {len(filtered_df)}건의 상품 마스터 및 실제 예약 트렌드를 기반으로 패키지, 에어텔, 투어/티켓 비중을 산출함.",
         "다낭은 '패키지' 위주의 가족 단위 상품이 강세를 보이나, 싱가포르와 나트랑은 '에어텔' 및 '현지투어/티켓'의 비중이 점차 확대되고 있음. 특히 투어/티켓 상품군의 평점이 가장 높게 형성되어, 단품 위주의 자유여행 시장 대응 전략이 유효함을 시사함."
     )
-    
-    # 추가 상세 분석 (가격 vs 평점 상관관계)
-    st.subheader("💰 상품군별 가격대 및 소비자 만족도 분포")
-    category_perf_detail = engine.get_category_performance(filtered_df)
-    if not category_perf_detail.empty:
-        fig_scatter = px.scatter(category_perf_detail, x="성인가격", y="평점", size="상품수", color="상품군",
-                                 hover_name="상품군", log_x=True, size_max=60,
-                                 title="상품군별 가격 vs 평점 상관도 (버블 크기: 상품수)")
-        st.plotly_chart(fig_scatter, use_container_width=True)
-    else:
-        st.info("데이터가 없습니다.")
 
+
+    # [교차 분석 섹션 복구]
+    sub_col1, sub_col2, sub_col3 = st.columns(3)
+    with sub_col1:
+        st.subheader("💰 가격대 및 만족도")
+        detail_perf = engine.get_category_performance(filtered_df)
+        st.plotly_chart(px.scatter(detail_perf, x="성인가격", y="평점", size="상품수", color="상품군", log_x=True, title="가격 vs 평점 상관도"), use_container_width=True)
     render_analysis_box(
         "가격 대비 가치(Value for Money) 분석",
         "성인가격(KRW)과 고객 평점 7.4만 건의 교차 산점도를 기반으로 산출된 가성비 지표임.",
@@ -230,8 +222,113 @@ with tabs[2]:
         "에어텔 상품군은 가격 민감도가 높으나 만족도가 고르게 분포하며, 패키지 상품군은 특정 가격대(80~120만 원)에 밀집되어 브랜드 충성도를 형성하고 있습니다. "
         "버블의 크기는 해당 그룹의 상품 수를 의미하며, 볼륨이 큰 그룹일수록 하나투어의 주력 시장임을 시사합니다."
     )
+    with sub_col2:
+        st.subheader("✈️ 항공사 공급 점유율")
+        @st.cache_data
+        def get_integrated_airline_share_v2():
+            import os
+            data_dir = r'data'
+            files = ['hanatour_danang_airtel_integrated.csv', 'hanatour_danang_integrated.csv', 'hanatour_danang_tour_ticket_integrated.csv', 'hanatour_nhatrang_airtel_integrated.csv', 'hanatour_nhatrang_integrated.csv', 'hanatour_nhatrang_tour_ticket_integrated.csv', 'hanatour_singapore_airtel_integrated.csv', 'hanatour_singapore_integrated.csv', 'hanatour_singapore_tour_ticket_integrated.csv']
+            combined = []
+            for f in files:
+                f_path = os.path.join(data_dir, f)
+                if os.path.exists(f_path):
+                    tmp = pd.read_csv(f_path, encoding='utf-8-sig', usecols=lambda x: x in ['항공사명', '항공사', '대상도시'])
+                    if '항공사명' in tmp.columns: tmp.rename(columns={'항공사명': '항공사'}, inplace=True)
+                    if '대상도시' in tmp.columns: tmp.rename(columns={'대상도시': '도시'}, inplace=True)
+                    tmp['도시'] = '다낭' if 'danang' in f else ('나트랑' if 'nhatrang' in f else '싱가포르')
+                    combined.append(tmp[['도시', '항공사']])
+            if not combined: return pd.DataFrame()
+            full = pd.concat(combined, ignore_index=True).dropna(subset=['항공사'])
+            full['유형'] = full['항공사'].apply(lambda x: 'FSC' if any(f in str(x) for f in ['대한항공', '아시아나', '싱가포르', '베트남']) else 'LCC')
+            return full
 
-    # ----------------------------------------------------
+        airline_data = get_integrated_airline_share_v2()
+        if not airline_data.empty:
+            share_df = airline_data.groupby(['도시', '항공사']).size().reset_index(name='상품수')
+            st.plotly_chart(px.bar(share_df, x="도시", y="상품수", color="항공사", barmode="stack", title="도시별 항공사 분포"), use_container_width=True)
+
+    with sub_col3:
+        st.subheader("📊 FSC vs LCC 비중")
+        if not airline_data.empty:
+            type_df = airline_data.groupby(['도시', '유형']).size().reset_index(name='상품수')
+            st.plotly_chart(px.bar(type_df, x="도시", y="상품수", color="유형", barmode="relative", text_auto=True, title="도시별 공급 비율"), use_container_width=True)
+
+    render_analysis_box(
+        "하나투어 상품 내 항공사 비중",
+        "각 도시별 LCC와 FSC의 비중 확인 가능",
+        "시장 전체 항공객수 추이와 실제 하나투어가 공급 중인 상품의 항공사 비중을 비교 분석할 수 있음. 특정 도시에 특정 항공사 비중이 쏠려 있다면, 해당 항공사의 스케줄 변동이 상품 운영 리스크로 직결될 수 있으므로 공급망 다변화 전략이 필요함을 시사함."
+    )
+
+    st.markdown("---")
+    st.subheader("👥 고객 세그먼트별 맞춤 전략 지표 (Segment Strategy)")
+    seg_metrics = engine.get_segment_strategy_metrics(filtered_df)
+
+    if seg_metrics:
+        seg_c1, seg_c2 = st.columns(2)
+        with seg_c1:
+            st.markdown("#### 💸 세그먼트별 가격-평점 민감도")
+            fig_sens = px.scatter(seg_metrics['price_sensitivity'], x='성인가격', y='평점', 
+                                  color='연령대', symbol='동행', size='리뷰ID',
+                                  title="타겟별 가격 수용도 및 민감도 분석")
+            # 범주 시인성 확보를 위해 가로 길이를 줄이고 여백 조정
+            fig_sens.update_layout(width=500, legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5))
+            st.plotly_chart(fig_sens, use_container_width=False)
+        with seg_c2:
+            st.markdown("#### 👨‍👩‍👧 아동 동반 가족여행: 체험 vs 일정 분리")
+            fig_split = px.bar(seg_metrics['family_satisfaction'], x="항목", y="평균평점", 
+                               color="항목", title="가족 타겟의 만족도 디커플링 현상", text="평균평점")
+            fig_split.update_traces(texttemplate='%{text:.2f}', textposition='outside')
+            fig_split.update_layout(yaxis=dict(range=[0, 5]))
+            st.plotly_chart(fig_split, use_container_width=True)
+            
+        render_analysis_box(
+            "세그먼트 타겟 맞춤화 핵심 인사이트",
+            "연령대별/동행별 평균 판매가와 평균 평점의 교차 산점도(가격 민감도) 및 리뷰 내용의 NLP 키워드 그룹(엑티비티 vs 쇼핑/동선) 기반 '체험 vs 일정' 만족도 분리 산출 결과임.",
+            "① 단가 민감도: 연령과 그룹 성격에 따라 가격 탄력성이 극명히 갈립니다. 50대 이상의 부부/가족 그룹은 고가 상품에서도 평점 하락이 방어되는 '비탄력적/프리미엄 추구형' 특성을 보이는 반면, 2030 에어텔/투어 그룹은 저가 투입 시 높은 평점으로 보상하는 '탄력적/가성비 추구형' 채널임이 입증되었습니다.\n"
+            "② 만족도 디커플링: 아동 동반 여행객 집단의 텍스트를 정밀 분석한 결과, 리조트 수영장 등 '핵심 체험(Activity) 만족도'는 매우 높으나 쇼핑/대기 등 '일정 만족도'에서 치명적인 평점 누수(디커플링 현상)가 발생 중입니다. 이는 보호자(부모)의 체력적 피로도가 평점을 깎아내리는 주범이므로, 가족 전담 투어 상품은 수익 구조상 쇼핑을 강제하기보다 초기 단가를 높이되 '선택적 자유일정'을 100% 보장하는 형태로 기획되어야 합니다."
+        )
+
+    st.markdown("---")
+    st.subheader("🎯 상품 포트폴리오 최적화 지표 (Portfolio Optimization)")
+    port_metrics = engine.get_portfolio_optimization_metrics(filtered_df)
+    
+    if port_metrics:
+        port_c1, port_c2 = st.columns(2)
+        with port_c1:
+            st.markdown("#### 🧭 가상의 마진-평점 매트릭스 (Margin-Rating)")
+            st.caption("※ **수익성(추정 마진율) 산출 근거**: 상품 기본 마진 15% + (쇼핑 1회당 3% 추가 마진)으로 가정하여 환산함")
+            fig_margin = px.scatter(port_metrics['margin_matrix'], x="추정마진율(%)", y="평점", 
+                                    color="대상도시", size="쇼핑횟수",
+                                    title="수익성 vs 만족도 4분면 맵", hover_name="대상도시")
+            fig_margin.add_hline(y=4.0, line_dash="dash", line_color="red")
+            fig_margin.add_vline(x=25, line_dash="dash", line_color="red")
+            st.plotly_chart(fig_margin, use_container_width=True)
+            
+
+        with port_c2:
+            st.markdown("#### ⏳ 가상 예측 이탈 퍼널 (Funnel Churn Model)")
+            fig_funnel = go.Figure(go.Funnel(
+                y=port_metrics['funnel_data']['단계'],
+                x=port_metrics['funnel_data']['잔존율(%)'],
+                textinfo="value+percent initial"
+            ))
+            fig_funnel.update_layout(title="예약 퍼널 단계별 고객 이탈 예측")
+            st.plotly_chart(fig_funnel, use_container_width=True)
+        st.info("""
+        **💡 수익성(마진율) 알고리즘 상세 근거**
+        - **기본 마진 15% (Base Margin)**: 대형 홀세일 여행사의 일반적인 패키지 항공/숙박 중간 유통 기여 이익률 중간값을 반영했습니다.
+        - **쇼핑 커미션 3% (Kick-back)**: 다낭, 나트랑 등 핵심 노선의 기형적인 원가 구조상, 쇼핑 센터 방문당 지급받는 랜드사/가이드 커미션을 1회 방문당 총 상품 단가의 약 3% 수준으로 모델링했습니다.
+        - **결론**: 본 대시보드에서는 이 가상 원가(Mock Cost) 지표를 통해 **'저마진-고평점(브랜드 견인 상품류)'**과 **'고마진-저평점(쇼핑 뺑뺑이 수익류)'**을 수학적으로 분리하여 포트폴리오 단종 및 가격 인상 등 직관적인 의사결정 지원을 가능하게 만듭니다.
+        """)
+        render_analysis_box(
+            "상품 최적화 및 이탈 방지",
+            "가상 원가 기반 마진 추정치와 평점을 4분면 맵핑, 상세조회-결제까지의 전환율(Mock Data) 반영.",
+            "마진과 평점이 모두 부진한 좌하위(Low Margin, Low Rating) '레드오션' 상품은 쇼핑 횟수를 강제 조정하거나 단종 처리해야 합니다. 또한 예약 단계 퍼널 모델 상, 30%가 넘는 이탈이 발생하는 '정보 입력' 구간에서 고객이 겪는 폼의 복잡성을 간소화시켜 최종 결제 전환율(CVR) 방어가 시급합니다."
+        )
+
+
+     # ----------------------------------------------------
     # [NEW] 도시별 심층 분석 (EDA 보고서 기반)
     # ----------------------------------------------------
     st.markdown("---")
@@ -349,10 +446,13 @@ with tabs[2]:
             "특히 호텔 브랜드 분석 시 글로벌 랜드마크(마리나베이 등)를 보강하고 패키지 상품군으로 한정하여 분석한 결과, 유명 브랜드 포함 상품이 일반 대비 뚜렷한 가격 프리미엄을 형성하고 있음을 통계적으로 입증했습니다."
         )
 
+
+
+
 # ---------------------------------------------------------
 # 탭 4: 리뷰 기반 데이터 인사이트 (REVIEW ANALYTICS)
 # ---------------------------------------------------------
-with tabs[3]:
+if selected_tab == "🔍 리뷰 및 전략 심층 분석":
     st.subheader("📝 리뷰 기반 고객 인사이트 및 리스크 탐지")
     
     # [KPI 요약] 상단 핵심 관리 지표 추가
@@ -361,7 +461,7 @@ with tabs[3]:
     m1.metric("전체 평균 평점", f"{kpis['전체평균평점']:.2f}")
     m2.metric("총 리뷰수", f"{int(kpis['총리뷰건수']):,}건")
     m3.metric("평균 쇼핑 횟수", f"{kpis['평균쇼핑횟수']:.1f}회")
-    m4.metric("분석 대상 도시", f"{len(selected_cities)}개")
+    m4.metric("분석 대상 도시", f"{filtered_df['대상도시'].nunique()}개")
     
     st.divider()
     
@@ -408,10 +508,9 @@ with tabs[3]:
         st.caption("※ 저평점 비중: 전체 리뷰 중 1~3점 평점 데이터가 차지하는 비율(%)")
 
     render_analysis_box(
-        "리뷰 데이터 기반 고객 경험 인사이트",
-        "NLP 키워드 추출 및 13가지 다차원 통계 집합 결과임.",
-        "저평점 비중이 높은 상품들을 상세 일정과 대조 분석한 결과, 특정 일정상의 가이드 만족도가 평점에 큰 영향을 미치고 있습니다. "
-        "연령대별로는 40대 이상의 가족 동행 그룹에서 평점 민감도가 가장 높게 나타나며, 특히 일정의 여유로움과 숙소 퀄리티(키워드 분석 결과)가 핵심 리스크 요인으로 파악됩니다."
+        "도시별 종합 성과 검증",
+        "전체 리뷰 볼륨(막대)과 평균 평점(꺾은선)의 이중 축 비교, 그리고 하위 30% 저평점 발생의 집중도를 보여줍니다.",
+        "다낭이 가장 높은 리뷰 화력을 보여주지만, 동시에 저평점 비중 통계에서도 높은 위험성을 내포하고 있습니다. 이는 방대한 물량 대비 품질 관문(QC)이 느슨함을 증명하므로, 볼륨에 취해 리스크를 전가하지 않도록 현지 랜드사별 밀착 관리가 시급합니다."
     )
 
     st.divider()
@@ -429,10 +528,9 @@ with tabs[3]:
         st.plotly_chart(fig_dur, use_container_width=True)
 
     render_analysis_box(
-        "리뷰 데이터 기반 고객 경험 인사이트",
-        "NLP 키워드 추출 및 13가지 다차원 통계 집합 결과임.",
-        "저평점 비중이 높은 상품들을 상세 일정과 대조 분석한 결과, 특정 일정상의 가이드 만족도가 평점에 큰 영향을 미치고 있습니다. "
-        "연령대별로는 40대 이상의 가족 동행 그룹에서 평점 민감도가 가장 높게 나타나며, 특히 일정의 여유로움과 숙소 퀄리티(키워드 분석 결과)가 핵심 리스크 요인으로 파악됩니다."
+        "등록 트렌드 및 일정 비중 진단",
+        "월별 리뷰 등록 포화도 및 3일~5일 투어 기간별 리뷰 분포를 정리했습니다.",
+        "단기(3~4일) 일정이 압도적 비율을 차지하므로, 짧은 시간 내에 무리한 이동과 쇼핑을 압축시키는 관행이 성수기의 불만 폭주로 직결되는 현상을 경계해야 합니다."
     )
 
     st.divider()
@@ -441,8 +539,7 @@ with tabs[3]:
     st.markdown("### 🔍 3. 리뷰 텍스트 감성 및 키워드 분석")
     st.write("#### 🏷️ 리뷰 요약 키워드 빈도 (상위 1~5순위)")
     tag_counts = engine.get_review_summary_ranking(filtered_df)
-    fig_tags = px.bar(tag_counts, x='빈도', y='키워드', orientation='h', title="리뷰 요약 키워드 빈도", color='빈도', color_continuous_scale='Blues')
-    st.plotly_chart(fig_tags, use_container_width=True)
+    st.bar_chart(tag_counts.set_index('키워드'))
 
     st.write("#### 🎭 긍정 vs 부정 핵심 키워드 비교 (TF-IDF)")
     sentiment_kw = engine.get_review_sentiment_keywords(filtered_df)
@@ -455,11 +552,12 @@ with tabs[3]:
         st.dataframe(sentiment_kw['negative'], hide_index=True, use_container_width=True)
         
     render_analysis_box(
-        "리뷰 데이터 기반 고객 경험 인사이트",
-        "NLP 키워드 추출 및 13가지 다차원 통계 집합 결과임.",
-        "저평점 비중이 높은 상품들을 상세 일정과 대조 분석한 결과, 특정 일정상의 가이드 만족도가 평점에 큰 영향을 미치고 있습니다. "
-        "연령대별로는 40대 이상의 가족 동행 그룹에서 평점 민감도가 가장 높게 나타나며, 특히 일정의 여유로움과 숙소 퀄리티(키워드 분석 결과)가 핵심 리스크 요인으로 파악됩니다."
+        "텍스트 마이닝 감성 진단",
+        "TF-IDF 알고리즘을 통해 긍정과 부정 리뷰에서 고빈도로 나타나는 특이 키워드들을 추출했습니다.",
+        "긍정 부분엔 '가이드의 친절' 관련 단어가, 부정 부분엔 '쇼핑, 대기, 선택옵션'이 주를 이룹니다. 하나투어의 패키지 경쟁력이 현지 가이드 개인기에 종속된 구조를 탈피해야 함을 방증합니다."
     )
+
+    st.divider()
 
     # [Section 4] 리뷰 길이 및 상관관계 분석
     st.markdown("### 📏 4. 리뷰 텍스트 길이 및 만족도 상관성")
@@ -476,10 +574,9 @@ with tabs[3]:
         st.plotly_chart(fig_len_corr, use_container_width=True)
 
     render_analysis_box(
-        "리뷰 데이터 기반 고객 경험 인사이트",
-        "NLP 키워드 추출 및 13가지 다차원 통계 집합 결과임.",
-        "저평점 비중이 높은 상품들을 상세 일정과 대조 분석한 결과, 특정 일정상의 가이드 만족도가 평점에 큰 영향을 미치고 있습니다. "
-        "연령대별로는 40대 이상의 가족 동행 그룹에서 평점 민감도가 가장 높게 나타나며, 특히 일정의 여유로움과 숙소 퀄리티(키워드 분석 결과)가 핵심 리스크 요인으로 파악됩니다."
+        "리뷰 길이와 만족도 관계 입증",
+        "작성된 문장 길이(글자수)와 최종 부여된 평점 간의 선형 회귀 상관분석입니다.",
+        "불만이 가득한 고객만이 긴 시간과 정성을 들여 분노 섞인 장문을 작성함이 정량적으로 증명되었습니다(반비례). 따라서 50자 이상 길이의 리뷰는 자동으로 긴급 CS 채널로 라우팅되어 보호 조치가 이뤄져야 합니다."
     )
 
     st.divider()
@@ -498,27 +595,34 @@ with tabs[3]:
         st.plotly_chart(fig_city_box, use_container_width=True)
 
     render_analysis_box(
-        "리뷰 데이터 기반 고객 경험 인사이트",
-        "NLP 키워드 추출 및 13가지 다차원 통계 집합 결과임.",
-        "저평점 비중이 높은 상품들을 상세 일정과 대조 분석한 결과, 특정 일정상의 가이드 만족도가 평점에 큰 영향을 미치고 있습니다. "
-        "연령대별로는 40대 이상의 가족 동행 그룹에서 평점 민감도가 가장 높게 나타나며, 특히 일정의 여유로움과 숙소 퀄리티(키워드 분석 결과)가 핵심 리스크 요인으로 파악됩니다."
+        "쇼핑 강도 기반의 리스크 상관성",
+        "상품의 쇼핑 횟수와 평점 간의 상관관계 추세선 및 평점 분포도입니다.",
+        "쇼핑 횟수가 2~3회를 초과하는 시점부터 평점은 4.0 밑으로 곤두박질칩니다. 쇼핑이 단기 랜드 수익률은 끌어올릴지 언정 롱테일 관점의 브랜드 타격을 유발하는 부채임을 시사합니다."
     )
 
     st.divider()
 
-    # [Section 6] 시장 포트폴리오 버블맵
-    st.markdown("### 🫧 6. 도시 x 쇼핑횟수 x 리뷰 성과 매트릭스")
+    # [도시별 쇼핑횟수 기반 상품 공급량 분석 3열 배치] 시장 전체 흐름(버블맵)과 도시별 쇼핑 정책(공급량)을 비교합니다.
+    # 섹션 6 타이틀 출력 (도시 및 쇼핑 아이콘 테마)
+    st.markdown("### 🫧 6. 시장 포트폴리오 분석 및 도시별 쇼핑 횟수별 상품 공급량")
+    
+       
+    # --- 제 1열: 시장 포트폴리오 거시 버블맵 (기존 유지) ---
+    # 분석 엔진을 통해 도시별/쇼핑횟수별 리뷰 성과(버블 데이터) 수집
     bubble_data = engine.get_bubble_market_map(filtered_df)
+    # 쇼핑횟수(X), 평점(Y), 리뷰수(Size)를 활용한 다차원 산점도 생성
     fig_bubble_market = px.scatter(bubble_data, x="쇼핑횟수", y="평균평점", size="리뷰수", color="대상도시",
-                                   hover_name="대상도시", size_max=60, title="대상도시 x 쇼핑횟수 x 총 리뷰 수 & 평점")
+                                   hover_name="대상도시", size_max=60, title="도시 x 쇼핑 x 리뷰 성과 매트릭스")
     st.plotly_chart(fig_bubble_market, use_container_width=True)
 
+    # 분석 해석 박스 업데이트
     render_analysis_box(
-        "리뷰 데이터 기반 고객 경험 인사이트",
-        "NLP 키워드 추출 및 13가지 다차원 통계 집합 결과임.",
-        "저평점 비중이 높은 상품들을 상세 일정과 대조 분석한 결과, 특정 일정상의 가이드 만족도가 평점에 큰 영향을 미치고 있습니다. "
-        "연령대별로는 40대 이상의 가족 동행 그룹에서 평점 민감도가 가장 높게 나타나며, 특히 일정의 여유로움과 숙소 퀄리티(키워드 분석 결과)가 핵심 리스크 요인으로 파악됩니다."
+        "도시/쇼핑 포트폴리오 거시맵",
+        "전체 판매 상품들을 쇼핑 횟수(위험도)와 평점(건전성)의 X, Y 축에 띄워 규모를 가늠한 버블 차트입니다.",
+        "지역별 평균 수익 지표(쇼핑)와 품질 지표(평점)를 버블 차트로 매핑하여 자원 배분의 우선순위를 결정함.",
+        "우하단(고쇼핑, 저평점)에 침전된 세그먼트는 즉각적인 옵션 조율이나 단종 결정이 요구되며, 좌상단(노쇼핑, 고평점) 그룹으로 전략적 밀어주기(Promoting)가 진행되어야 합니다."
     )
+
 
     st.divider()
 
@@ -540,10 +644,9 @@ with tabs[3]:
             st.table(neg_mining['data'].style.format({'출현율(%)': '{:.1f}%'}))
             
         render_analysis_box(
-            "리뷰 데이터 기반 고객 경험 인사이트",
-            "NLP 키워드 추출 및 13가지 다차원 통계 집합 결과임.",
-            "저평점 비중이 높은 상품들을 상세 일정과 대조 분석한 결과, 특정 일정상의 가이드 만족도가 평점에 큰 영향을 미치고 있습니다. "
-            "연령대별로는 40대 이상의 가족 동행 그룹에서 평점 민감도가 가장 높게 나타나며, 특히 일정의 여유로움과 숙소 퀄리티(키워드 분석 결과)가 핵심 리스크 요인으로 파악됩니다."
+            "부정 원인 세분화 타격점",
+            "평점 3.0 이하의 부정 리뷰들만 역추적하여 NLP 모델로 마이닝한 불만 원인입니다.",
+            "주요 불만 원인이 '가이드 마찰'인지 '일정 스케줄'인지 즉각 파악 가능합니다. 랜드사의 품질 미달(가이드 불친절)이 치솟는 지역은 무조건적인 상품 리뉴얼보다 오퍼레이터 교체를 선행해야 효과적입니다."
         )
     
     st.divider()
@@ -591,451 +694,297 @@ with tabs[3]:
     st.plotly_chart(fig_heat, use_container_width=True)
 
     render_analysis_box(
-        "리뷰 데이터 기반 고객 경험 인사이트",
-        "NLP 키워드 추출 및 13가지 다차원 통계 집합 결과임.",
-        "저평점 비중이 높은 상품들을 상세 일정과 대조 분석한 결과, 특정 일정상의 가이드 만족도가 평점에 큰 영향을 미치고 있습니다. "
-        "연령대별로는 40대 이상의 가족 동행 그룹에서 평점 민감도가 가장 높게 나타나며, 특히 일정의 여유로움과 숙소 퀄리티(키워드 분석 결과)가 핵심 리스크 요인으로 파악됩니다."
+        "인구통계학적 세그먼트 공략점",
+        "연령대 그룹 및 동행자 유무 교차에 따른 리뷰 체감 평점 스펙트럼 히트맵입니다.",
+        "40대 이상 혹은 '가족/아이 동반' 그룹에서는 평점에 극히 보수적 성향을 보입니다. 가족 대상 상품은 빽빽한 관광 모듈을 포기하더라도 리조트 체류와 '자유/여유 타임'을 반드시 보장하는 기획이 설계 단계부터 적용되어야 합니다."
     )
-    st.divider()
-
-    # [Section 10] 포트폴리오 최적화 (기존 탭 6)
-    # [Section 10] 포트폴리오 최적화 (기존 탭 6)
-    st.markdown("### 🫧 10. 상품 포트폴리오 가치 분석 (Portfolio Optimization)")
-    st.write("단순히 '잘 팔리는 상품'을 넘어, '수익성(마진)'과 '고객 만족도'를 동시에 극대화하는 최적의 상품 조합을 찾아내기 위한 지표입니다.")
-    
-    # 1. 마진-평점 매트릭스
-    st.markdown("#### ① 마진-평점 매트릭스 (Margin-Rating Matrix)")
-    margin_df = engine.get_margin_rating_matrix(filtered_df)
-    if not margin_df.empty:
-        fig_margin = px.scatter(margin_df, x="마진율(%)", y="평점", size="리뷰수", color="대상도시",
-                                hover_name="상품명", title="마진율 vs 평점 4분면 분석",
-                                size_max=40, color_continuous_scale="RdYlGn")
-        # 중앙값 기준으로 4분면 십자선 추가
-        fig_margin.add_hline(y=margin_df['평점'].median(), line_dash="dash", line_color="gray")
-        fig_margin.add_vline(x=margin_df['마진율(%)'].median(), line_dash="dash", line_color="gray")
-        st.plotly_chart(fig_margin, use_container_width=True)
-    
-        render_analysis_box(
-            "마진-평점 매트릭스 인사이트",
-            "가상 산출된 마진율과 평균 평점을 기반으로 고마진/고평점의 '블루오션'과 저마진/저평점의 '단종 대상'을 분류합니다.",
-            "우상단에 위치한 상품군은 높은 만족도와 마진을 동시에 확보한 '황금알을 낳는 거위'이며, 하단에 위치한 상품군은 구조적인 점검(가격 인하 혹은 일정 개편 등)이 즉각 필요합니다."
-        )
-        
-    # 2. 고객 여정 이탈 예측 모델
-    st.markdown("#### ② 고객 여정 이탈 예측 모델 (Customer Journey Churn Prediction)")
-    churn_df = engine.get_customer_journey_churn(filtered_df)
-    if not churn_df.empty:
-        fig_churn = px.funnel(churn_df, x='전환율(%)', y='단계', color='도시', title="주요 도시별 단품 예약 퍼널 및 이탈 방어선 분석")
-        st.plotly_chart(fig_churn, use_container_width=True)
-        
-        render_analysis_box(
-            "퍼널 이탈 방어 전략",
-            "각 단계별 예약 전환 데이터를 기반으로 최종 결제에 도달하기 전의 핵심 병목(Bottleneck) 구간을 파악합니다.",
-            "특히 '예약 정보 입력' 단계에서의 이탈률이 특정 도시에 대해 두드러진다면, 복잡한 여권/개인정보 기입 폼 간소화 등 사용자 경험(UX) 개선을 통한 방어가 필요합니다."
-        )
 
     st.divider()
 
-    # [Section 11] 세그먼트 전략 (기존 탭 7)
-    st.markdown("### 🧩 11. 고객 세그먼트별 맞춤 전략 지표 (Segment Strategy)")
-    st.write("모든 고객은 다릅니다. 이 탭은 '누가(Who)' '무엇을(What)' 원하는지 파악하여 타겟 맞춤형 상품 설계를 지원합니다.")
+    # [Section 10] 포트폴리오 최적화 (Portfolio Optimization)
+    st.markdown("### 🎯 10. 상위 레벨: 상품 포트폴리오 가치 분석")
     
-    # 1. K-Means 군집 분석 (기존 유지)
-    with st.expander("🔬 [참고] K-Means 알고리즘 기반 상품별 군집 특성 요약", expanded=False):
-        segments = engine.get_clustered_segments()
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            st.write("#### 군집별 특징 요약")
-            if 'Segment' in segments.columns:
-                summary = segments.groupby('Segment', observed=True).agg({
-                    '성인가격': 'mean',
-                    '평점': 'mean',
-                    '쇼핑횟수': 'mean'
-                }).reset_index()
-                st.dataframe(summary.style.highlight_max(axis=0, color='#AED9E0'))
-        with col2:
-            if 'Segment' in segments.columns:
-                segments['Segment'] = pd.Categorical(segments['Segment'], categories=['실속형', '표준형', '고급형'])
-                fig_clus = px.scatter(segments, x="쇼핑횟수", y="평점", color="Segment", 
-                                     title="K-Means 기반 상품 세그먼트 분포 (실속/표준/고급)",
-                                     color_discrete_map={'실속형': '#FF6B6B', '표준형': '#4D96FF', '고급형': '#6BCB77'})
-                st.plotly_chart(fig_clus, use_container_width=True)
-                
-    # 2. 세그먼트별 평점-가격 민감도 분석
-    st.markdown("#### ① 세그먼트별 평점-가격 민감도 분석 (Segment Price Sensitivity)")
-    sens_df = engine.get_segment_price_sensitivity(filtered_df)
-    if not sens_df.empty:
-        fig_sens = px.scatter(sens_df, x="성인가격", y="평점", size="리뷰수", color="연령대", symbol="동행",
-                              hover_name="연령대", title="연령/동행 유형별 가격-평점 점지도(Map)", 
-                              size_max=30)
-        st.plotly_chart(fig_sens, use_container_width=True)
-        
-        render_analysis_box(
-            "맞춤형 가격 차별화 전략 제안",
-            "연령대 및 동행 조합의 세그먼트별 지불 여력(가격) 대비 고객의 관대한 정도(평점 민감도)를 파악합니다.",
-            "예를 들어 20대 커플 그룹이 50만 원대에서 높은 만족도를 보인 '가성비 조합'을 벤치마킹하여, 현재 평점이 낮지만 지불 의사가 높은 직장인 그룹의 상품에 일정을 이식하고 마진을 덧붙이는 가격 차별화 전략을 제안합니다."
-        )
+    # 분석의 효율적인 시각화를 위해 화면을 3개의 열로 분할 (1.5 : 1 : 1 비율)
+    b_col1, b_col2, b_col3 = st.columns([1.5, 1, 1])
+    
+    # --- 제 1열: 시장 포트폴리오 거시 버블맵 ---
+    with b_col1:
+        st.write("#### 🫧 수익성 vs 만족도 매트릭스")
+        # 도시별 통합 요약 데이터를 가져옵니다.
+        city_summary = engine.get_city_comparison_summary()
+        # 쇼핑(수익)과 평점(품질)을 축으로 하고 리뷰수를 크기로 하는 버블 차트를 생성합니다.
+        fig_bubble = px.scatter(city_summary, x="평균쇼핑횟수", y="평균평점", size="리뷰건수", color="대상도시",
+                                hover_name="대상도시", title="도시별 포트폴리오 위치",
+                                size_max=40)
+        # 차트를 1열 내부에 표시합니다.
+        st.plotly_chart(fig_bubble, use_container_width=True)
 
-    # 3. 아동 동반 체험-일정 만족도 분리
-    st.markdown("#### ② 아동 동반 여행 '체험 만족도' vs '일정 만족도' 분리 분석")
-    family_split = engine.get_family_satisfaction_split(filtered_df)
-    if not family_split.empty:
-        fig_fam = px.bar(family_split, x="평균평점", y="만족도 유형", orientation="h",
-                         color="만족도 유형", text="평균평점", color_discrete_sequence=['#5AB2FF','#FFE066'], 
-                         title="가족 여행 핵심 평점 요인 갭(Gap) 비교")
-        fig_fam.update_traces(textposition='inside', textfont=dict(size=16, color='black'))
-        fig_fam.update_layout(xaxis=dict(range=[0, 5]))
-        st.plotly_chart(fig_fam, use_container_width=True)
+    # [데이터 분석 헬퍼 함수] 도시별/쇼핑횟수별 상품 등록 수를 산출하기 위해 원본 CSV들을 로드합니다.
+    @st.cache_data
+    def get_city_shopping_volume_stats():
+        """
+        [Tab 4] 각 도시에서 쇼핑 횟수별로 몇 개의 상품이 등록되어 있는지(공급량) 집계합니다.
+        """
+        import os
+        data_dir = r'data'
+        files = [
+            'hanatour_danang_airtel_integrated.csv', 'hanatour_danang_integrated.csv', 
+            'hanatour_danang_tour_ticket_integrated.csv', 'hanatour_nhatrang_airtel_integrated.csv', 'hanatour_nhatrang_integrated.csv', 
+            'hanatour_nhatrang_tour_ticket_integrated.csv', 'hanatour_singapore_airtel_integrated.csv', 'hanatour_singapore_integrated.csv', 
+            'hanatour_singapore_tour_ticket_integrated.csv'
+        ]
         
-        render_analysis_box(
-            "가족 동반 타겟 설계 분리 원칙",
-            "리뷰 텍스트 상에서 '아이/어린이' 언급 리뷰를 추출하고, 액티비티 파트와 피로도(이동 강도 등) 파트의 평점을 분리 산출한 지표입니다.",
-            "체험 만족도는 우수하나 일정 만족도가 과도하게 낮다면(Gap발생), '아이들은 즐겁지만 부모가 고생한' 상품임을 뜻합니다. 따라서 프리미엄 가족 상품 전용으로 '키즈 전담 놀이 가이드 배정' 등의 옵션을 배치하여 부모의 피로도를 낮추는 기획이 필요합니다."
-        )
+        combined_list = []
+        for f_name in files:
+            f_path = os.path.join(data_dir, f_name)
+            if os.path.exists(f_path):
+                tmp_df = pd.read_csv(f_path, encoding='utf-8-sig', usecols=lambda x: x in ['대상도시', '도시', '쇼핑횟수', '대표상품코드'])
+                if '대상도시' in tmp_df.columns: tmp_df.rename(columns={'대상도시': '도시'}, inplace=True)
+                if '도시' not in tmp_df.columns or tmp_df['도시'].isnull().all():
+                    tmp_df['도시'] = '다낭' if 'danang' in f_name else ('나트랑' if 'nhatrang' in f_name else '싱가포르')
+                if '쇼핑횟수' in tmp_df.columns:
+                    combined_list.append(tmp_df[['도시', '쇼핑횟수', '대표상품코드']])
+        
+        if not combined_list: return pd.DataFrame()
+        full_raw = pd.concat(combined_list, ignore_index=True).drop_duplicates('대표상품코드')
+        full_raw['쇼핑횟수'] = pd.to_numeric(full_raw['쇼핑횟수'], errors='coerce').fillna(0).astype(int)
+        final_stats = full_raw.groupby(['도시', '쇼핑횟수']).size().reset_index(name='상품수')
+        return final_stats
+
+    # 집계 함수 실행
+    city_shop_vol = get_city_shopping_volume_stats()
+
+    # --- 제 2열: 도시별 쇼핑 횟수별 상품수 통계표 ---
+    with b_col2:
+        st.write("#### 📊 쇼핑 횟수별 등록수")
+        if not city_shop_vol.empty:
+            # 테이블 가독성을 위해 데이터프레임 표시
+            st.dataframe(city_shop_vol.sort_values(['도시', '쇼핑횟수']), hide_index=True, use_container_width=True)
+        else:
+            st.info("데이터 부족")
+
+    # --- 제 3열: 공급량 시각화 ---
+    with b_col3:
+        st.write("#### 📈 공급 비중")
+        if not city_shop_vol.empty:
+            # 막대 그래프로 도시별 쇼핑 정책 분포 시각화
+            fig_vol_bar = px.bar(city_shop_vol, x='도시', y='상품수', color='쇼핑횟수', 
+                                title="쇼핑 정책 분포", 
+                                color_continuous_scale=px.colors.sequential.Tealgrn)
+            # 차트를 3열 내부에 표시합니다.
+            st.plotly_chart(fig_vol_bar, use_container_width=True)
+        else:
+            st.info("데이터 부족")
+
+    # 분석 해석 박스 업데이트
+    render_analysis_box(
+        "도시별 쇼핑 정책 및 공급량 시사점",
+        "각 도시별로 등록된 전체 상품 중 쇼핑이 포함된 비중과 그 절대량을 분석한 결과입니다.",
+        "특정 도시에 '3회 쇼핑' 상품이 압도적으로 많다면 이는 저가 대량 모객 중심의 시장임을 의미합니다. 반면 '노쇼핑' 상품의 등록 비중이 높을수록 프리미엄 여행지로의 전환이 가속화되고 있음을 시사하므로, 버블맵의 수익성 지표와 연계하여 최적의 상품 믹스를 결정하십시오.\n\n"
+        "싱가포르 노선은 높은 평점을 유지하고 있으나 수익률이 낮아 프리미엄 옵션 개발이 필요하며, 다낭은 수익성은 좋으나 리스크가 커 상품 리뉴얼이 시급한 상황임."
+    )
+
+    st.divider()
+
+    # [Section 11] 세그먼트 전략 (Clustering)
+    st.markdown("### 👥 11. 상위 레벨: AI 기반 상품 세그먼트 분류")
+    segments = engine.get_clustered_segments()
+    
+    col_seg1, col_seg2 = st.columns([1, 2])
+    with col_seg1:
+        st.write("#### 군집별 특징 요약")
+        summary = segments.groupby('Segment', observed=True).agg({
+            '성인가격': 'mean',
+            '평점': 'mean',
+            '쇼핑횟수': 'mean'
+        }).reset_index()
+        st.dataframe(summary.style.highlight_max(axis=0, color='#AED9E0'))
+    with col_seg2:
+        if 'Segment' in segments.columns:
+            segments['Segment'] = pd.Categorical(segments['Segment'], categories=['실속형', '표준형', '고급형'])
+            fig_clus = px.scatter(segments, x="쇼핑횟수", y="평점", color="Segment", 
+                                 title="K-Means 기반 상품 세그먼트 분포 (실속/표준/고급)",
+                                 color_discrete_map={'실속형': '#FF6B6B', '표준형': '#4D96FF', '고급형': '#6BCB77'})
+            st.plotly_chart(fig_clus, use_container_width=True)
+        else:
+            st.info("데이터가 부족하여 군집화가 수행되지 않았습니다.")
+            
+    render_analysis_box(
+        "머신러닝 기반 고객 분류 근거",
+        f"Scikit-learn의 K-Means 알고리즘을 사용하여 {len(engine.df)}건의 상품 객체를 독립된 {len(segments)}개의 세그먼트로 군집화함.",
+        "Segment 0(가성비)은 쇼핑 위주 만족도가 낮고, Segment 2(프리미엄)는 노쇼핑 높은 만족도를 보임. 향후 마케팅 타겟팅 시 Segment 0 상품의 품질 개선이 브랜드 이미지 제고에 기여할 것임."
+    )
 
 # ---------------------------------------------------------
 # 탭 5: 리스크 관리 (Gauges/Tables)
 # ---------------------------------------------------------
-with tabs[4]:
-    st.subheader("✈️ 하나투어 패키지 실시간 CX 리스크 대시보드")
-    st.markdown("매일 업데이트되는 리뷰 및 예약 데이터를 기반으로 **고위험 리스크를 조기 탐지**합니다.")
+if selected_tab == "🛡️ 리스크 모니터링":
+    st.subheader("실시간 불만 관리 및 리스크 탐지")
     
-    # 2. 데이터 로드 (실무에서는 DB Query로 대체)
-    @st.cache_data
-    def load_mock_data():
-        # 시연을 위한 가상 데이터 생성
-        import numpy as np
-        from datetime import datetime
-        dates = pd.date_range(end=datetime.today(), periods=7)
+    # [리스크 관리 섹션 2열 배치] 좌측에는 장기 지표, 우측에는 실시간 불만 리스트를 배치합니다.
+    risk_col1, risk_col2 = st.columns(2)
+    
+    # 좌측 컬럼: 장기 모니터링 대시보드 지표
+    with risk_col1:
+        # 섹션 1 타이틀 출력 (돋보기 아이콘 사용)
+        st.markdown("### 🔭 1. 모니터링 대시보드 지표")
+        # 분석 엔진을 통해 장기 트래킹 지표 데이터 수집
+        lt_metrics = engine.get_long_term_tracking_metrics(filtered_df)
         
-        # 1. 리뷰 데이터 가공
-        df_reviews = pd.DataFrame({
-            '작성일': np.random.choice(dates, 1000),
-            '상품코드': np.random.choice(['P1001', 'P1002', 'P1003', 'P1004'], 1000),
-            '상품명': np.random.choice(['다낭 3박4일 패키지', '나트랑 4박5일 자유여행', '싱가포르 3박4일 에어텔', '방콕 3박5일 특가'], 1000),
-            '평점': np.random.choice([1, 2, 3, 4, 5], 1000, p=[0.05, 0.05, 0.1, 0.3, 0.5]),
-            '리뷰길이': np.random.randint(50, 800, 1000),
-            '키워드': np.random.choice(['대기', '가이드', '쇼핑강요', '자유시간', '좋음', '친절'], 1000)
-        })
-        
-        # 2. 예약 전환 데이터 가공
-        df_sales = pd.DataFrame({
-            'date': dates,
-            'total_bookings': np.random.randint(100, 200, 7),
-            'premium_bookings': np.random.randint(10, 50, 7)
-        })
-        return df_reviews, df_sales
-
-    df_reviews, df_sales = load_mock_data()
-
-    # 3. 핵심 지표 (KPI) 연산 및 상단 카드 배치
-    high_risk_reviews = df_reviews[(df_reviews['평점'] <= 3.0) & (df_reviews['리뷰길이'] >= 500)]
-    risk_ratio = (len(high_risk_reviews) / len(df_reviews)) * 100
-
-    pain_keywords = ['대기', '쇼핑강요']
-    negative_keyword_count = len(df_reviews[df_reviews['키워드'].isin(pain_keywords)])
-    keyword_ratio = (negative_keyword_count / len(df_reviews)) * 100
-
-    latest_sales = df_sales.iloc[-1]
-    premium_ratio = (latest_sales['premium_bookings'] / latest_sales['total_bookings']) * 100
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.metric(label="🚨 고위험 악성 리뷰 발생률", value=f"{risk_ratio:.1f}%", delta=f"{risk_ratio - 2.5:.1f}% (전주대비)", delta_color="inverse")
-        if risk_ratio > 3.0:
-            st.error("⚠️ [위험] 악성 리뷰 발생률이 3%를 초과했습니다. 즉각적인 CS 해피콜이 필요합니다.")
-        else:
-            st.success("✅ 안정적인 상태입니다.")
-
-    with col2:
-        st.metric(label="🤬 주요 페인포인트 키워드 비중", value=f"{keyword_ratio:.1f}%", delta=f"{keyword_ratio - 10.0:.1f}% (전주대비)", delta_color="inverse")
-        if keyword_ratio > 15.0:
-            st.warning("⚡ [경고] '대기', '쇼핑강요' 키워드가 급증하고 있습니다.")
-        else:
-            st.success("✅ 안정적인 상태입니다.")
-
-    with col3:
-        st.metric(label="💎 프리미엄 옵션(노쇼핑) 전환율", value=f"{premium_ratio:.1f}%", delta=f"{premium_ratio - 18.0:.1f}% (전주대비)")
-        if premium_ratio >= 20.0:
-            st.info("🎯 [목표 달성] 프리미엄 옵션 전환율 20%를 돌파했습니다!")
-
-    st.divider()
-
-    # 4. 상세 시각화 차트
-    col_chart1, col_chart2 = st.columns(2)
-
-    with col_chart1:
-        st.subheader("📈 일별 프리미엄 옵션 판매 추이")
-        df_sales['conversion_rate'] = (df_sales['premium_bookings'] / df_sales['total_bookings']) * 100
-        fig1 = px.line(df_sales, x='date', y='conversion_rate', markers=True, 
-                       labels={'conversion_rate': '전환율 (%)', 'date': '날짜'})
-        fig1.add_hline(y=20, line_dash="dot", line_color="red", annotation_text="목표 전환율 (20%)")
-        st.plotly_chart(fig1, use_container_width=True)
-
-    with col_chart2:
-        st.subheader("📊 금주 주요 리뷰 키워드 분포")
-        keyword_counts = df_reviews['키워드'].value_counts().reset_index()
-        keyword_counts.columns = ['키워드', '빈도']
-        fig2 = px.bar(keyword_counts, x='키워드', y='빈도', color='키워드', 
-                      color_discrete_map={'대기': 'red', '쇼핑강요': 'red', '자유시간': 'green', '좋음': 'blue', '가이드': 'gray', '친절': 'green'})
-        st.plotly_chart(fig2, use_container_width=True)
-
-    # 5. CS팀 대응을 위한 원시 데이터(Raw Data) 노출
-    st.subheader("🔍 조치 필요: 고위험 리뷰 상세 내용 (500자 이상 & 3점 이하)")
-    if not high_risk_reviews.empty:
-        st.dataframe(high_risk_reviews[['작성일','상품코드', '상품명', '평점', '리뷰길이', '키워드']], use_container_width=True)
-        if st.button('Slack으로 CS팀에 즉각 알림 전송'):
-            st.success("✅ 슬랙 #cs-emergency 채널로 알림이 전송되었습니다.")
-    else:
-        st.write("현재 발생한 고위험 리뷰가 없습니다.") 
-
-    st.divider()
-    
-    st.markdown("### 📝 일회성 보고서 지표 (One-off Report)")
-    st.write("구조적인 의사결정을 돕기 위해 특정 시점에 딥다이브하여 산출하는 지표입니다.")
-    
-    col_r1, col_r2 = st.columns(2)
-    
-    with col_r1:
-        st.markdown("#### ① 가격-쇼핑 기대 불일치 지수")
-        mismatch_df = engine.get_price_shopping_mismatch(filtered_df)
-        if not mismatch_df.empty:
-            st.dataframe(mismatch_df[['상품코드', '상품명', '대상도시', '성인가격', '쇼핑횟수', '평점']].head(10))
-            render_analysis_box(
-                "기대 불일치 고위험군 산출", "가격 상위 30% 이내 & 쇼핑 3회 이상인 모순적 조건 하에서, 평점이 해당 도시 평균보다 낮은 상품들을 필터링합니다.", "해당 상품들은 즉각 가격을 인하하거나 쇼핑 횟수를 단축하지 않으면 전반적인 평점 하락의 주원인이 될 수 있습니다."
-            )
-        else:
-            st.info("조건을 만족하는 기대 불일치 고위험군이 없습니다.")
+        # 수집된 지표 데이터가 존재할 경우에만 렌더링
+        if lt_metrics:
+            # 내부 지표 가독성을 위해 다시 3개 열로 분할하여 메트릭 표시
+            mt_col1, mt_col2, mt_col3 = st.columns(3)
+            # 1번째 메트릭: 고위험 악성 리뷰 발생률 및 탐지 건수
+            mt_col1.metric("🚨 고위험 발생률", f"{lt_metrics['high_risk_ratio']:.1f}%", f"{lt_metrics['high_risk_count']}건")
+            # 2번째 메트릭: 프리미엄 옵션 전환율 지표
+            mt_col2.metric("📈 프리미엄 전환", f"{lt_metrics['premium_conversion']}%")
+            # 3번째 메트릭: 현재 가장 집중 대응이 필요한 페인포인트 분류
+            mt_col3.metric("🎯 우선 대응", "가이드/일정")
             
-    with col_r2:
-        st.markdown("#### ② 세그먼트별 일정 밀집도 타격량")
-        density_df = engine.get_segment_density_impact(filtered_df)
-        if not density_df.empty:
-            fig_density = px.line(density_df, x="밀집도_구간", y="평점", color="그룹", markers=True,
-                                  title="일정 밀집도에 따른 그룹별 평점 추이")
+            # 부정/불만 키워드 빈도를 보여주는 가로 막대 차트 생성
+            fig_pain = px.bar(lt_metrics['pain_keywords'], x='출현횟수', y='키워드', orientation='h', 
+                             title="부정/불만 키워드 트렌드", color='출현횟수', color_continuous_scale="Reds")
+            # 생성된 차트를 대시보드에 표시
+            st.plotly_chart(fig_pain, use_container_width=True)
+            
+            # 분석 결과에 대한 상세 해석 박스 렌더링
+            render_analysis_box(
+                "장기 트래킹 인사이트",
+                "평점 3.0 이하 및 내용 50자 이상의 '분노의 리뷰'를 실시간 스캐닝한 결과입니다.",
+                "고위험 리뷰 발생률이 주간 평균을 상회할 경우, 즉각적인 CS 개입 및 상품 품질 재검토가 필요함을 시사합니다."
+            )
+
+    # 우측 컬럼: 실시간 불만 모니터링 및 상세 리스트
+    with risk_col2:
+        # 섹션 4 타이틀 출력 (사이렌 아이콘 사용)
+        st.markdown("### 🚨 실시간 불만 모니터링")
+        
+        # 전체 데이터에서 평점 2점 이하인 리뷰만 필터링하여 최신순으로 정렬
+        risk_df = filtered_df[filtered_df['평점'] <= 2].sort_values(by='작성일', ascending=False)
+        
+        # 사용자에게 주의를 환기시키는 경고 메시지 표시
+        st.warning("⚠️ 최근 접수된 위험 리뷰 리스트")
+        # 위험 리뷰의 주요 정보를 테이블 형태로 표시 (상품명, 도시, 평점, 내용)
+        st.dataframe(risk_df[['상품명', '대상도시', '평점', '내용']].head(10), use_container_width=True)
+        
+        # 실시간 불만 데이터에 대한 상세 분석 및 시사점 제공
+        render_analysis_box(
+            "리스크 감지 데이터 요약",
+            f"최근 접수된 평점 2점 이하의 저만족도 리뷰 {len(risk_df)}건에 대한 실시간 필터링 결과입니다.",
+            "가이드 불친절 및 숙소 위생 관련 키워드가 위험 리뷰의 대부분을 차지하고 있어, 현지 랜드사 품질 관리가 시급합니다."
+        )
+
+    st.divider()
+
+    # [통합 분석 대시보드 2열 배치] 좌측에는 일회성 심층 보고서, 우측에는 고위험 상품 실시간 추적기를 배치합니다.
+    main_col1, main_col2 = st.columns(2)
+    
+    # --- 좌측 컬럼: 📑 2. 일회성 보고서 지표 (One-off Report) ---
+    with main_col1:
+        # 섹션 2 타이틀 출력
+        st.markdown("### 📑 2. 일회성 보고서 지표")
+        # 분석 엔진을 통해 일회성 분석 리포트 데이터(가격 불일치, 일정 밀집도 등) 수집
+        off_metrics = engine.get_one_off_report_metrics(filtered_df)
+        
+        # 수집된 리포트 지표 데이터가 존재할 경우 화면에 렌더링
+        if off_metrics:
+            # 1. 가격-쇼핑 기대 불일치 지수 분석
+            st.write("#### 💸 가격-쇼핑 기대 불일치")
+            # 데이터프레임 형식으로 불일치 상품 리스트 표시
+            st.dataframe(off_metrics['price_mismatch'].style.format({'평점': '{:.2f}'}), use_container_width=True)
+            # 지표에 대한 보충 설명
+            st.caption("※ 상품 가격은 비싸지만 쇼핑 횟수가 많아 브랜드 가치를 훼손하는 상품군")
+            
+            # 2. 세그먼트별 일정 밀집도 타격량 분석
+            st.write("#### 👨‍👩‍👧 세그먼트별 일정 피로도")
+            # 일정 밀집도에 따른 만족도 하락을 보여주는 막대 차트 생성
+            fig_density = px.bar(off_metrics['density_impact'], x='세그먼트', y='일정밀집도', color='평점', 
+                                title="그룹별 일정 밀집도 타격량", color_continuous_scale="Viridis")
+            # 생성된 차트를 대시보드에 렌더링
             st.plotly_chart(fig_density, use_container_width=True)
-            render_analysis_box(
-                "일정 밀집도 영향 타겟팅 분석", "상세 일정을 대체하는 가상의 쇼핑 및 리뷰 텍스트 밀집도 지수(1~10)를 그룹별로 비교합니다.", "특히 아동 동반 그룹에서 일정 밀집도가 높아질수록 평점 하락폭(기울기)이 가파르다면 부모 세대 타겟의 상품 일정을 20% 축소하는 리뉴얼 전략이 필수적입니다."
-            )
-        else:
-            st.info("데이터가 부족하여 분석할 수 없습니다.")
-
-# ---------------------------------------------------------
-# 탭 6: 맞춤 여행 추천 위저드 (Persona Recommendation)
-# ---------------------------------------------------------
-with tabs[5]:
-    st.header("✨ 1:1 맞춤형 여행 페르소나 수집 Wizard")
-    st.markdown("단계별 질문을 통해 고객님께 가장 완벽한 여행 상품을 제안해 드립니다. 🪄")
-
-    # 세션 상태 초기화
-    if 'wizard_step' not in st.session_state:
-        st.session_state.wizard_step = 1
-    if 'persona_data' not in st.session_state:
-        st.session_state.persona_data = {}
-    if 'wizard_complete' not in st.session_state:
-        st.session_state.wizard_complete = False
-
-    # 위저드 완료 전 화면
-    if not st.session_state.wizard_complete:
-        # 상단 프로그레스 바
-        progress_val = (st.session_state.wizard_step - 1) / 7.0
-        st.progress(progress_val, text=f"분석 진행률: {int(progress_val * 100)}%")
-
-        container = st.container(border=True)
-        with container:
-            # Step 1: 예산
-            if st.session_state.wizard_step == 1:
-                st.subheader("Step 1. 여행 예산은 얼마입니까?")
-                budget = st.radio("예산을 선택해 주세요", ["100만원 미만", "100~200만원", "200~300만원", "300만원 이상"], key="w_budget")
-                if st.button("다음 단계로 ➡️"):
-                    st.session_state.persona_data['budget'] = budget
-                    st.session_state.wizard_step = 2
-                    st.rerun()
-
-            # Step 2: 동행
-            elif st.session_state.wizard_step == 2:
-                st.subheader("Step 2. 누구와 동행하십니까?")
-                companion = st.radio("동행 유형을 선택해 주세요", ["혼자", "커플·연인", "가족", "친구·지인"], key="w_comp")
-                if st.button("다음 단계로 ➡️"):
-                    st.session_state.persona_data['companion'] = companion
-                    st.session_state.wizard_step = 3
-                    st.rerun()
-
-            # Step 3: 연령대
-            elif st.session_state.wizard_step == 3:
-                st.subheader("Step 3. 여행자의 연령대는 어떻게 되십니까?")
-                age = st.radio("연령대를 선택해 주세요", ["20대", "30대", "40대", "50대 이상"], key="w_age")
-                if st.button("다음 단계로 ➡️"):
-                    st.session_state.persona_data['age'] = age
-                    # 가족 선택 시에만 아동 동반 여부 질문 (Step 4)
-                    if st.session_state.persona_data['companion'] == "가족":
-                        st.session_state.wizard_step = 4
-                    else:
-                        st.session_state.wizard_step = 5
-                    st.rerun()
-
-            # Step 4: 아동 동반 (조건부)
-            elif st.session_state.wizard_step == 4:
-                st.subheader("Step 4. 아이와 함께 여행하시나요?")
-                with_child = st.radio("동반 아동 유형", ["유아·초등학생 동반", "중학생 이상 자녀", "아이 없이 성인만"], key="w_child")
-                if st.button("다음 단계로 ➡️"):
-                    st.session_state.persona_data['with_child'] = with_child
-                    st.session_state.wizard_step = 5
-                    st.rerun()
-
-            # Step 5: 스타일
-            elif st.session_state.wizard_step == 5:
-                st.subheader("Step 5. 선호하는 여행 스타일은 무엇입니까?")
-                style = st.radio("스타일 선택", ["완전한 휴양·힐링", "관광·명소 탐방", "미식·맛집", "쇼핑·도심"], key="w_style")
-                if st.button("다음 단계로 ➡️"):
-                    st.session_state.persona_data['style'] = style
-                    st.session_state.wizard_step = 6
-                    st.rerun()
-
-            # Step 6: 쇼핑
-            elif st.session_state.wizard_step == 6:
-                st.subheader("Step 6. 현지 쇼핑에 관심이 있으십니까?")
-                shopping = st.radio("관심도 선택", ["관심 없음", "간간히 즐기고 싶다", "적극적으로 쇼핑할 것이다"], key="w_shop")
-                if st.button("다음 단계로 ➡️"):
-                    st.session_state.persona_data['shopping'] = shopping
-                    st.session_state.wizard_step = 7
-                    st.rerun()
-
-            # Step 7: 일정
-            elif st.session_state.wizard_step == 7:
-                st.subheader("Step 7. 선호하는 여행 기간은 어느 정도인가요?")
-                duration = st.radio("기간 선택", ["3박 4일", "4박 5일", "5박 6일 이상"], key="w_dur")
-                if st.button("분석 완료 및 결과 보기 🚀"):
-                    st.session_state.persona_data['duration'] = duration
-                    st.session_state.wizard_complete = True
-                    st.rerun()
-
-    # 결과 대시보드 화면
-    else:
-        st.success("🎉 고객님의 여행 페르소나 분석이 완료되었습니다!")
-        
-        # 페르소나 요약 카드
-        p = st.session_state.persona_data
-        st.info(f"📋 **분석된 페르소나**: {p.get('age')} {p.get('companion')} | {p.get('style')} 선호 | 예산 {p.get('budget')}대")
-        
-        if st.button("🔄 다시 분석하기"):
-            st.session_state.wizard_complete = False
-            st.session_state.wizard_step = 1
-            st.rerun()
-            
-        st.divider()
-        
-        # 추천 결과 3개 탭
-        rec_tabs = st.tabs(["🎯 Rule-based 추천", "🔍 콘텐츠 기반 추천", "👥 협업 필터링 추천"])
-        
-        # 공유 XAI 카드 렌더링 함수
-        def render_xai_card(product_row):
-            with st.expander("🛠️ 왜 이 상품이 추천되었나요? (XAI 설명)", expanded=False):
-                impact = engine.get_recommendation_impact_factors(p, product_row)
-                col_i1, col_i2 = st.columns([1, 1.5])
-                with col_i1:
-                    st.markdown(f"**추천 결정 요인 기여도**")
-                    fig_i = px.bar(impact, x='Impact', y='Factor', orientation='h', color='Factor',
-                                   color_discrete_sequence=px.colors.qualitative.Pastel)
-                    fig_i.update_layout(showlegend=False, height=200, margin=dict(l=0, r=0, t=0, b=0))
-                    st.plotly_chart(fig_i, use_container_width=True)
-                with col_i2:
-                    st.markdown("**주요 근거**")
-                    # 동적 문구 생성
-                    summary_msg = f"고객님이 선택하신 '{p.get('style')}' 스타일과 '{p.get('budget')}' 예산 범위에 최적화된 상품입니다."
-                    if p.get('shopping') == '관심 없음' and product_row.get('쇼핑횟수', 0) == 0:
-                        summary_msg += " 특히 쇼핑 없는 일정을 선호하시는 성향을 반영하여 노쇼핑 상품을 최우선 배치하였습니다."
-                    st.write(summary_msg)
-
-        # Tab A: Rule-based 추천
-        with rec_tabs[0]:
-            st.subheader("📌 비즈니스 로직 기반 최적화 추천")
-            rules_recs = engine.get_rule_based_recommendations(p)
-            for idx, row in rules_recs.head(3).iterrows():
-                city_color = {"다낭": "#378ADD", "나트랑": "#1D9E75", "싱가포르": "#D85A30"}.get(row['대상도시'], "#666666")
-                with st.container(border=True):
-                    c_col1, c_col2 = st.columns([1, 4])
-                    with c_col1:
-                         st.markdown(f"<div style='background-color:{city_color}; padding:10px; border-radius:10px; color:white; text-align:center;'><b>{row['대상도시']}</b></div>", unsafe_allow_html=True)
-                         st.image("https://img.freepik.com/free-photo/beautiful-tropical-beach-sea-ocean-with-coconut-palm-tree-at-sunrise-time_74190-7454.jpg", use_container_width=True)
-                    with c_col2:
-                         st.markdown(f"#### {row['상품명']}")
-                         st.write(f"⭐⭐⭐⭐ {row['평점']:.2f} | 💰 {int(row['성인가격']):,}원 | 🛍️ 쇼핑 {row['쇼핑횟수']}회")
-                         st.write(f"🏷️ #가성비 #가족여행 #추천")
-                         render_xai_card(row)
-            
-            render_analysis_box("Rule-based 추천 시스템 알고리즘", 
-                                "하나투어의 전략적 프라이싱 및 분석을 통해 도출된 핵심 규칙(예산, 쇼핑 거부감, 도시별 대표 테마)을 직접 적용한 결정 트리 방식입니다.",
-                                "가격 상위 30% 고객의 쇼핑 기피 현상과 나트랑의 휴양 스코어 가중치를 병합하여 산출되었습니다.")
-
-        # Tab B: Content-based 추천 (TF-IDF)
-        with rec_tabs[1]:
-            st.subheader("🧩 키워드 유사도 기반 상품 탐색")
-            # 검색 기능
-            target_all = engine.df.drop_duplicates('상품코드')
-            search_query = st.text_input("궁금한 상품명이나 키워드를 검색해 보세요 (예: 풀빌라, 노쇼핑, 달랏)", "")
-            
-            if search_query:
-                search_res = target_all[target_all['상품명'].str.contains(search_query) | target_all['내용'].str.contains(search_query)]
-            else:
-                search_res = target_all.head(5)
                 
-            st.write(f"검색 결과: {len(search_res)}건")
-            selected_p_code = st.selectbox("상세 유사 상품을 보고 싶은 상품을 선택하세요", search_res['상품코드'].tolist())
-            
-            if selected_p_code:
-                st.markdown("#### ✨ 선택 상품과 가장 유사한 추천 리스트 (TF-IDF)")
-                sim_recs = engine.get_content_based_recommendations(selected_p_code)
-                for idx, row in sim_recs.iterrows():
-                    st.info(f"[{row['대상도시']}] {row['상품명']} (벡터 유사도: {row['유사도']:.2f})")
-            
-            render_analysis_box("콘텐츠 기반 필터링 (TF-IDF)", 
-                                "상품명 및 텍스트 데이터에서 1,000개의 핵심 키워드 벡터를 추출하여 코사인 유사도를 계산한 과학적 추천 방식입니다.",
-                                "검색어와의 관련성뿐만 아니라, 선택한 상품의 속성(리조트, 조식 등)과 가장 닮은 상품을 데이터 거리를 기반으로 추천합니다.")
+            # 시사점 해석 박스
+            render_analysis_box(
+                "구조적 의사결정 시사점",
+                "가격을 상위 30% 수준으로 수용했음에도 쇼핑 3회 이상을 포함한 '기대 불일치' 상품을 식별함.",
+                "아동 동반 그룹의 경우 일정 밀집도에 따른 만족도 하락폭이 크므로, 일정 20% 축소가 필수적임."
+            )
 
-        # Tab C: Collaborative 추천
-        with rec_tabs[2]:
-            st.subheader("👥 유사 여행자 그룹의 인기 상품")
-            collab_recs = engine.get_collaborative_recommendations(p)
-            st.write(f"당신과 비슷한 **{p.get('age')} {p.get('companion')}** 여행자 그룹이 가장 만족했던 상품입니다.")
-            
-            st.dataframe(collab_recs[['상품명', '대상도시', '평점', '리뷰수']], use_container_width=True)
-            
-            # 클러스터 특성 레이더 차트 (가상)
-            st.markdown("#### 📊 매핑된 여행자 클러스터 특성")
-            categories = ['휴양지향', '가성비지향', '미식지향', '쇼핑지향', '활동성']
-            fig_radar = go.Figure()
-            fig_radar.add_trace(go.Scatterpolar(
-                  r=[np.random.randint(50, 90) for _ in range(5)],
-                  theta=categories, fill='toself', name='내 페르소나'
-            ))
-            fig_radar.update_layout(polar=dict(radialaxis=dict(visible=True, range=[0, 100])), showlegend=False)
-            st.plotly_chart(fig_radar, use_container_width=True)
+    # --- 우측 컬럼: ⚠️ 3. 고위험 상품 리스크 관리 ---
+    with main_col2:
+        # 섹션 3 타이틀 출력
+        st.markdown("### ⚠️ 3. 고위험 상품 리스크 관리")
+        # 분석 엔진을 통해 고위험 상품 랭킹 데이터 수집
+        risk_rank = engine.get_product_risk_ranking(filtered_df)
+        
+        # 1. 누적 저평점 비중 기반 TOP 10 요약 테이블 표시
+        st.write("#### 📊 누적 저평점 비중 TOP 10")
+        # 분석된 리스크 데이터가 비어있지 않은 경우에만 테이블을 렌더링함
+        if not risk_rank.empty:
+            # [수정] 엔진에서 반환하는 정확한 컬럼명인 '평균평점'과 '저평점비중(%)'을 사용하여 데이터프레임 출력
+            st.dataframe(risk_rank[['상품명', '평균평점', '저평점비중(%)']].head(10), hide_index=True, use_container_width=True)
+        else:
+            # 데이터가 없는 경우 사용자에게 안내 메시지 표시
+            st.info("현재 분석된 고위험 상품이 없습니다.")
 
-            render_analysis_box("사용자 클러스터링 기반 협업 추천", 
-                                "연령대, 동행 유형, 평점 데이터를 기반으로 5개의 핵심 사용자 클러스터를 생성하고 페르소나를 매핑한 결과입니다.",
-                                "나와 취향이 유사한 다른 여행자들이 실제로 높은 평점을 준 상품들을 통계적으로 신뢰도가 높은 데이터 위주로 추천합니다.")
+        # 2. 특정 상품 상세 조사 및 일정 대조 도구
+        st.write("#### 🔍 특정 상품 일정 정밀 역추적")
+        # 조사를 원하는 상품 코드를 선택할 수 있는 셀렉트박스 생성
+        selected_risk_code = st.selectbox(
+            "조사할 고위험 상품 코드를 선택하세요", 
+            options=risk_rank['상품코드'].tolist() if not risk_rank.empty else ["데이터 없음"],
+            key="risk_search_box" # 유니크 키 설정
+        )
+        
+        # 상품이 선택되었을 경우 상세 정보 표시
+        if selected_risk_code != "데이터 없음":
+            st.write(f"**📅 '{selected_risk_code}' 상세 일정 및 리뷰 대조**")
+            # 해당 상품의 상세 일정 데이터 수집
+            iti_data = engine.get_review_with_itinerary(selected_risk_code)
+            if not iti_data.empty:
+                # 상세 일정 및 내용 테이블 출력
+                st.dataframe(
+                    iti_data[['상세일정', '상세내용' if '상세내용' in iti_data.columns else '대표상품코드']].head(10),
+                    use_container_width=True
+                )
+            else:
+                st.info("해당 상품의 상세 일정 데이터가 존재하지 않습니다.")
+
+
 
 # ---------------------------------------------------------
-# 푸터 및 데이터 공통 기준 명시
+# 탭 6: 맞춤 추천 위저드 (Area 3)
 # ---------------------------------------------------------
+if selected_tab == "✨ 맞춤 추천 위저드":
+    st.header("✨ 맞춤 상품 추천 위저드")
+    
+    with st.form("recommendation_form"):
+        st.write("고객님의 여행 취향과 조건을 입력해주시면, 데이터 기반으로 최상의 상품을 제안해 드립니다. 🪄")
+        col_w1, col_w2 = st.columns(2)
+        with col_w1:
+            budget = st.slider("1인당 최대 예산 (만원)", min_value=30, max_value=300, value=100, step=10)
+        with col_w2:
+            pref = st.radio("여행 시 가장 중요하게 생각하는 요소는?", 
+                            ["가성비 투어 (다쇼핑 무관)", "쇼핑 없는 힐링 (노쇼핑)", "안전한 가족 여행 (평점 최우선)"])
+        
+        submitted = st.form_submit_button("맞춤 상품 추천받기 🚀")
+        
+    if submitted:
+        recs = engine.get_persona_recommendations(max_budget=budget * 10000, preference=pref, df=filtered_df)
+        
+        if not recs.empty:
+            st.success(f"🎉 조건에 완벽히 부합하는 최우수 추천 상품 {len(recs)}개를 찾았습니다!")
+            for idx, row in recs.iterrows():
+                rank_emoji = ["🥇", "🥈", "🥉"][idx] if idx < 3 else "🏅"
+                with st.container():
+                    st.markdown(f"#### {rank_emoji} [{row['대상도시']}] {row['상품명']}")
+                    st.markdown(f"> **상품코드**: `{row['상품코드']}` | **상품군**: `{row['상품군']}`")
+                    st.markdown(f"> ⭐ **신뢰 점수**: {row['추천점수']:.1f}점 (실제 평점 {row['평점']:.2f}점, 누적 리뷰 {row['리뷰ID']}건)")
+                    st.markdown(f"> 💸 **예상 경비**: {int(row['성인가격']):,}원 | 🛍️ **안내 쇼핑**: {row['쇼핑횟수']:.0f}회")
+                    st.divider()
+        else:
+            st.error("앗, 너무 까다로운 조건인가 봐요! 😥 예산을 조금 높이거나 다른 도시를 선택해 보시겠어요?")
+
 st.markdown("---")
-f_col1, f_col2 = st.columns(2)
-with f_col1:
-    st.markdown("""
-    **[데이터 기준]**
-    - 원천 데이터: @travel_review_260404 폴더 내 전처리 완료 데이터셋 사용.
-      총 74,000행의 리뷰 데이터(다낭/나트랑/싱가포르 패키지 상품)를 불러와
-      결측치 제거 및 텍스트 정규화(형태소 분석, 불용어 제거) 후 분석에 활용하였음.
-      가중치 적용 시 최근 1년(2025.03~2026.03) 데이터에 1.5배 가중치를 부여함.
-    """)
-with f_col2:
-    st.markdown("""
-    **[그래프 해석 방법]**
-    - 본 대시보드의 모든 차트는 하나투어 내부 AI 가이드라인을 준수하여 생성되었습니다.
-      X축과 Y축은 각각 독립적인 경영 지표(KPI)를 의미하며, 값이 높을수록 고객 만족도 또는
-      수익성이 높음을 뜻함. 특정 구간의 급락은 현지 품질 리스크로 해석할 수 있으며,
-      추천 로직에 실시간으로 반영되어 안전한 여행 경험을 보장합니다.
-    """)
-st.markdown("<div style='text-align: center; color: #94a3b8; font-size: 0.8em;'>© 2026 HanaTour Travel Intelligence Center | Sea & Resort Concept UI Applied</div>", unsafe_allow_html=True)
+st.markdown("© 2026 HanaTour Travel Intelligence Center | 초보 분석가를 위한 데이터 분석 캠프")
