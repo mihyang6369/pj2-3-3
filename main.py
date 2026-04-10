@@ -626,17 +626,18 @@ if selected_tab == "🔍 리뷰 및 전략 심층 분석":
                                     color_discrete_sequence=['#636EFA'])
         st.plotly_chart(fig_len_dist, use_container_width=True)
     with col_len2:
-        # [방어적 시각화 로직] statsmodels 설치 여부에 따라 추세선 표시 여부 결정
-        # 초보 분석가를 위한 팁: 외부 라이브러리(ols 등) 의존성이 있는 기능은 try-except로 감싸는 것이 서비스 중단을 막는 좋은 방법입니다.
+        # [데이터 분석 심화] 'statsmodels' 라이브러리 의존성 처리 로직
+        # Plotly Express의 trendline="ols" 옵션은 내부적으로 Ordinary Least Squares(최소제곱법) 회귀 분석을 위해 statsmodels를 사용합니다.
         try:
-            # 정상적으로 statsmodels가 있을 때 추세선(trendline)을 포함하여 생성
+            # 1. 시도: statsmodels가 설치된 환경에서 추세선을 포함한 산점도 생성
             fig_len_corr = px.scatter(rev_len_df, x="리뷰길이", y="평점", color="평점",
                                       title="리뷰 길이 x 평점 상관관계 (OLS 추세선 포함)", 
                                       trendline="ols",
                                       color_continuous_scale="RdYlGn")
-        except ImportError:
-            # 라이브러리가 없는 환경(예: 배포 서버 등)일 경우 추세선 없이 산점도만 생성
-            st.warning("⚠️ 'statsmodels' 라이브러리가 없어 추세선을 생략하고 산점도만 표시합니다.")
+        except Exception:
+            # 2. 방어적 예외 처리: 라이브러리가 없거나 다른 문제가 있을 경우 산점도만 표시하여 시스템 안정성 유지
+            # 초보 분석가 가이드: 일부 고급 분석 기능은 특정 라이브러리에 의존하므로, 이와 같이 try-except를 사용해 전체 앱이 멈추지 않게 방어하는 것이 중요합니다.
+            st.info("💡 추세선을 보려면 'statsmodels' 패키지가 필요합니다. 현재는 일반 산점도만 시각화합니다.")
             fig_len_corr = px.scatter(rev_len_df, x="리뷰길이", y="평점", color="평점",
                                       title="리뷰 길이 x 평점 상관관계",
                                       color_continuous_scale="RdYlGn")
