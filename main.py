@@ -601,13 +601,26 @@ if selected_tab == "🔍 리뷰 및 전략 심층 분석":
     rev_len_df = engine.get_review_length_analysis(filtered_df)
     col_len1, col_len2 = st.columns(2)
     with col_len1:
+        # 리뷰 텍스트 길이의 분포를 보여주는 히스토그램 생성
         fig_len_dist = px.histogram(rev_len_df, x="리뷰길이", nbins=50, title="리뷰 텍스트 길이 분포",
                                     color_discrete_sequence=['#636EFA'])
         st.plotly_chart(fig_len_dist, use_container_width=True)
     with col_len2:
-        fig_len_corr = px.scatter(rev_len_df, x="리뷰길이", y="평점", color="평점",
-                                  title="리뷰 길이 x 평점 상관관계", trendline="ols",
-                                  color_continuous_scale="RdYlGn")
+        # [방어적 시각화 로직] statsmodels 설치 여부에 따라 추세선 표시 여부 결정
+        # 초보 분석가를 위한 팁: 외부 라이브러리(ols 등) 의존성이 있는 기능은 try-except로 감싸는 것이 서비스 중단을 막는 좋은 방법입니다.
+        try:
+            # 정상적으로 statsmodels가 있을 때 추세선(trendline)을 포함하여 생성
+            fig_len_corr = px.scatter(rev_len_df, x="리뷰길이", y="평점", color="평점",
+                                      title="리뷰 길이 x 평점 상관관계 (OLS 추세선 포함)", 
+                                      trendline="ols",
+                                      color_continuous_scale="RdYlGn")
+        except ImportError:
+            # 라이브러리가 없는 환경(예: 배포 서버 등)일 경우 추세선 없이 산점도만 생성
+            st.warning("⚠️ 'statsmodels' 라이브러리가 없어 추세선을 생략하고 산점도만 표시합니다.")
+            fig_len_corr = px.scatter(rev_len_df, x="리뷰길이", y="평점", color="평점",
+                                      title="리뷰 길이 x 평점 상관관계",
+                                      color_continuous_scale="RdYlGn")
+        
         st.plotly_chart(fig_len_corr, use_container_width=True)
 
     render_analysis_box(
