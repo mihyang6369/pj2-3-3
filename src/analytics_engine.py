@@ -12,33 +12,46 @@ except ImportError:
     from data_loader import preprocess_and_merge, load_all_data
 class AnalyticsEngine:
     """
-    대시보드 각 탭에 필요한 데이터 집계 및 분석 로직을 담당하는 엔진입니다.
-    초보 분석가를 위해 모든 연산 과정을 주석으로 설명합니다.
+    하나투어 대시보드의 모든 데이터 계산과 분석 로직을 총괄하는 핵심 엔진 클래스입니다.
+    
+    이 클래스는 다음과 같은 역할을 수행합니다:
+    1. 원본 데이터(항공, 상품, 리뷰) 로드 및 전처리
+    2. 각 대시보드 탭에서 필요한 통계 지표 산출
+    3. 머신러닝(K-Means) 및 텍스트 마이닝(TF-IDF)을 활용한 고급 분석
     """
     
     def __init__(self):
         """
-        엔진 초기화 시 데이터를 미리 로드하고 병합합니다.
+        엔진 인스턴스 생성 시 원본 데이터를 불러오고 전처리를 수행하여 메모리에 저장합니다.
         """
+        # data_loader.py에 정의된 함수를 사용하여 모든 원본 데이터를 딕셔너리 형태로 가져옵니다.
         raw_data = load_all_data()
+        # 가져온 원본 데이터들을 분석하기 좋게 하나로 병합하고 정제합니다.
         self.df = preprocess_and_merge(raw_data)
         
     def get_aviation_trend(self) -> pd.DataFrame:
         """
-        [Tab 1] 항공 실적 트렌드 분석 데이터를 반환합니다.
-        데이터 정합성을 위해 연도-월-도시별 총합을 먼저 구한 뒤, 그 월별 평균을 산출합니다.
+        [항공 분석] 항공 실적 트렌드 데이터를 산출합니다.
+        단순 합계가 아닌, 연도별 월 평균을 구하여 데이터의 왜곡을 방지합니다.
+        
+        Returns:
+            pd.DataFrame: 월별, 도시별 평균 유임승객 데이터
         """
-        # 1. 연도-월-도시별 총합 산출
+        # 1. 먼저 각 연도-월-도시별로 승객 수의 총합을 구합니다. (동일 월 내 여러 레코드 합산)
         monthly_city_total = self.df.groupby(['연도', '월', '대상도시'])['유임승객(명)'].sum().reset_index()
         
-        # 2. 여러 연도에 걸친 월별 평균 산출
+        # 2. 여러 연도(예: 2023년 1월, 2024년 1월)의 데이터를 평균 내어 일반적인 월별 추이를 파악합니다.
         trend = monthly_city_total.groupby(['월', '대상도시'])['유임승객(명)'].mean().reset_index()
+        # 시각화 시 순서가 꼬이지 않도록 월 순서대로 정렬하여 반환합니다.
         return trend.sort_values(by='월')
+
     def get_yearly_aviation_performance(self) -> pd.DataFrame:
         """
-        [Tab 1] 연도별 전체 여객 실적 추이 데이터를 집계합니다.
+        [항공 분석] 전체 기간 동안의 연도별 항공 시장 성장세를 집계합니다.
         """
+        # 항공 원본 데이터를 다시 참조하여 연도별로 그룹화하고 승객 수를 합산합니다.
         raw_aviation = load_all_data()['aviation']
+        # 컬럼명의 공백을 제거하여 에러를 방지합니다.
         raw_aviation.columns = raw_aviation.columns.str.strip()
         yearly = raw_aviation.groupby('연도')['유임승객(명)'].sum().reset_index()
         return yearly

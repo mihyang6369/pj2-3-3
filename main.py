@@ -1,21 +1,42 @@
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from src.data_loader import load_all_data, preprocess_and_merge
-from src.analytics_engine import AnalyticsEngine
-from src.ui_elements import render_analysis_box, apply_custom_style, PRIMARY_COLOR, SECONDARY_COLOR
+"""
+하나투어 여행 상품 성과 및 전략 분석 대시보드 (Main Application)
+
+이 파일은 Streamlit을 사용하여 하나투어의 항공 실적, 상품 데이터, 리뷰 감성 분석 결과 등을 
+시각화하고 사용자에게 인터랙티브한 분석 환경을 제공합니다. 
+
+주요 기능:
+1. 항공 시장 성과 추이 분석 (연도별/월별/국가별)
+2. 도시별 통합 EDA (탐색적 데이터 분석)
+3. 상품 속성 및 가격 전략 분석
+4. 리뷰 텍스트 마이닝 및 평점 상관관계 분석
+5. 리스크 모니터링 및 상품 추천 엔진
+"""
+
+import streamlit as st # 웹 대시보드 제작을 위한 라이브러리
+import pandas as pd # 데이터 프레임 처리를 위한 라이브러리
+import plotly.express as px # 동적 시각화를 위한 라이브러리
+import plotly.graph_objects as go # 세밀한 그래프 제어를 위한 라이브러리
+from src.data_loader import load_all_data, preprocess_and_merge # 데이터 로딩 및 전처리 함수
+from src.analytics_engine import AnalyticsEngine # 분석 로직을 담당하는 핵심 엔진
+from src.ui_elements import render_analysis_box, apply_custom_style, PRIMARY_COLOR, SECONDARY_COLOR # UI 요소 렌더링 함수
 
 # ---------------------------------------------------------
 # 1. 전역 설정 및 스타일 적용
 # ---------------------------------------------------------
+# 페이지 제목과 레이아웃(wide: 넓게) 설정
 st.set_page_config(page_title="HanaTour Travel Insight Dashboard", layout="wide")
+# 사전에 정의된 커스텀 CSS 스타일 적용
 apply_custom_style()
 
-# 데이터 분석 엔진 초기화
+@st.cache_resource # 리소스 로딩 속도 향상을 위해 캐싱 처리
 def get_engine():
+    """
+    분석 엔진인 AnalyticsEngine의 인스턴스를 생성하고 유지합니다.
+    데이터를 한 번만 로드하여 메모리 사용량을 최적화합니다.
+    """
     return AnalyticsEngine()
 
+# 엔진 인스턴스 생성
 engine = get_engine()
 
 # ---------------------------------------------------------
