@@ -289,12 +289,32 @@ if selected_tab == "📊 하나투어 판매 상품 요약":
         seg_c1, seg_c2 = st.columns(2)
         with seg_c1:
             st.markdown("#### 💸 세그먼트별 가격-평점 민감도")
+            # [수정] 데이터의 실제 값과 정확히 일치하는 카테고리별 고유 마커 지정
+            symbol_map = {
+                "가족여행": "circle",
+                "기타": "square-open", # 기타는 빈 사각형으로 구분
+                "허니문": "diamond",
+                "아동동반 여행": "star",
+                "커플여행": "x",
+                "친구모임": "cross",
+                "나홀로 여행": "pentagon",
+                "부모님과 함께": "triangle-up"
+            }
+            
             fig_sens = px.scatter(seg_metrics['price_sensitivity'], x='성인가격', y='평점', 
                                   color='연령대', symbol='동행', size='리뷰ID',
-                                  title="타겟별 가격 수용도 및 민감도 분석")
-            # 범주 시인성 확보를 위해 가로 길이를 줄이고 여백 조정
-            fig_sens.update_layout(width=500, legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5))
-            st.plotly_chart(fig_sens, use_container_width=False)
+                                  symbol_map=symbol_map, # 커스텀 심볼 맵 적용
+                                  title="타겟별 가격 수용도 및 민감도 분석",
+                                  size_max=10)
+            
+            # [수정] 마커 사이즈 세밀 조정 (sizeref=10 정도로 작게 유지)
+            fig_sens.update_traces(marker=dict(sizeref=600, sizemin=2))
+            # [수정] X축 0원부터 시작, 생략 없이 전체 숫자로 표기
+            fig_sens.update_xaxes(range=[0, None], tickformat=',d') 
+            
+            # 가로 길이를 충분히 늘리고 컨테이너 너비에 맞춤
+            fig_sens.update_layout(width=800, legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5))
+            st.plotly_chart(fig_sens, use_container_width=True)
         with seg_c2:
             st.markdown("#### 👨‍👩‍👧 아동 동반 가족여행: 체험 vs 일정 분리")
             fig_split = px.bar(seg_metrics['family_satisfaction'], x="항목", y="평균평점", 
