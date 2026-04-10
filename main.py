@@ -626,21 +626,11 @@ if selected_tab == "🔍 리뷰 및 전략 심층 분석":
                                     color_discrete_sequence=['#636EFA'])
         st.plotly_chart(fig_len_dist, use_container_width=True)
     with col_len2:
-        # [데이터 분석 심화] 'statsmodels' 라이브러리 의존성 처리 로직
-        # Plotly Express의 trendline="ols" 옵션은 내부적으로 Ordinary Least Squares(최소제곱법) 회귀 분석을 위해 statsmodels를 사용합니다.
-        try:
-            # 1. 시도: statsmodels가 설치된 환경에서 추세선을 포함한 산점도 생성
-            fig_len_corr = px.scatter(rev_len_df, x="리뷰길이", y="평점", color="평점",
-                                      title="리뷰 길이 x 평점 상관관계 (OLS 추세선 포함)", 
-                                      trendline="ols",
-                                      color_continuous_scale="RdYlGn")
-        except Exception:
-            # 2. 방어적 예외 처리: 라이브러리가 없거나 다른 문제가 있을 경우 산점도만 표시하여 시스템 안정성 유지
-            # 초보 분석가 가이드: 일부 고급 분석 기능은 특정 라이브러리에 의존하므로, 이와 같이 try-except를 사용해 전체 앱이 멈추지 않게 방어하는 것이 중요합니다.
-            st.info("💡 추세선을 보려면 'statsmodels' 패키지가 필요합니다. 현재는 일반 산점도만 시각화합니다.")
-            fig_len_corr = px.scatter(rev_len_df, x="리뷰길이", y="평점", color="평점",
-                                      title="리뷰 길이 x 평점 상관관계",
-                                      color_continuous_scale="RdYlGn")
+        # [수정] 라이브러리 의존성 해결(requirements.txt 추가)로 안내 메시지 없이 바로 추세선 생성
+        fig_len_corr = px.scatter(rev_len_df, x="리뷰길이", y="평점", color="평점",
+                                  title="리뷰 길이 x 평점 상관관계 (OLS 추세선)", 
+                                  trendline="ols",
+                                  color_continuous_scale="RdYlGn")
         
         st.plotly_chart(fig_len_corr, use_container_width=True)
 
