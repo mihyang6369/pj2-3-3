@@ -1,13 +1,14 @@
 import pandas as pd
 import numpy as np
+import os
 from typing import Dict, Any
+
 # 정의한 공통 데이터 로더 모듈에서 병합 함수를 가져옵니다.
 try:
     from data_loader import preprocess_and_merge, load_all_data
 except ImportError:
     # streamlit에서 실행 시 경로 문제를 방지하기 위해 추가
     import sys
-    import os
     sys.path.append(os.path.dirname(__file__))
     from data_loader import preprocess_and_merge, load_all_data
 
