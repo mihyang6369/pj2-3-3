@@ -313,17 +313,42 @@ class AnalyticsEngine:
         return prod_stats.sort_values(by='추천점수', ascending=False).head(3)
 
     def get_long_term_tracking_metrics(self, df: pd.DataFrame = None) -> Dict[str, Any]:
-        target_df = (df if df is not None else self.df).copy()
+        target_df = df if (df is not None and not df.empty) else self.df
+        target_df = target_df.copy()
         target_df['리뷰길이'] = target_df['내용'].fillna("").apply(len)
-        high_risk = len(target_df[(target_df['평점'] <= 3.0) & (target_df['리뷰길이'] >= 50)])
-        ratio = (high_risk / len(target_df) * 100) if not target_df.empty else 0
+        
+        # 1. 고위험 리뷰 (3점 이하 & 500자 이상 - 분노 수치)
+        high_risk_condition = (target_df['평점'] <= 3.0) & (target_df['리뷰길이'] >= 500)
+        high_risk_count = len(target_df[high_risk_condition])
+        high_risk_ratio = (high_risk_count / len(target_df) * 100) if not target_df.empty else 0
+        
+        # 2. 실시간 평점 변동 (가정)
+        avg_rating = target_df['평점'].mean()
+        
+        # 3. 최장 리뷰 길이
+        max_len = target_df['리뷰길이'].max() if not target_df.empty else 0
+        
+        # 4. 리스크 집중 도시
+        if not target_df.empty:
+            neg_stats = target_df[target_df['평점'] <= 3.0].groupby('대상도시').size()
+            risk_city = neg_stats.idxmax() if not neg_stats.empty else "N/A"
+        else:
+            risk_city = "N/A"
+            
         kws = ['가이드', '불친절', '대기', '쇼핑강요', '위생', '식사']
         pain_kws = pd.DataFrame({'키워드': kws, '출현횟수': [45, 32, 28, 22, 15, 12]})
+        
         return {
-            'high_risk_ratio': ratio, 
-            'high_risk_count': high_risk,
-            'premium_conversion': 12.5,
-            'pain_keywords': pain_kws
+            'high_risk_ratio': high_risk_ratio, 
+            'high_risk_count': high_risk_count,
+            'avg_rating': avg_rating,
+            'max_review_len': max_len,
+            'risk_city': risk_city,
+            'pain_keywords': pain_kws,
+            'safety_guard_count': 4, # 가상 데이터
+            'cs_intervention_rate': 85, # 가상 데이터
+            'loss_prevention': "약 2.6억원", # 가상 데이터
+            'recovery_rate': 68 # 가상 데이터
         }
 
     def get_one_off_report_metrics(self, df: pd.DataFrame = None) -> Dict[str, Any]:

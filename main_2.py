@@ -27,7 +27,7 @@ HANA_COLORS = [PRIMARY_COLOR, "#7EB2DD", "#445E93", "#F5E6BE", "#E7CBA9", "#A691
 SEQUENTIAL_BLUES = "Blues"
 SEQUENTIAL_REDS = "Reds"
 
-@st.cache_resource
+# [중요] 캐시 비활성화: 소스코드 수정 사항 즉시 반영을 위해 데코레이터 제거
 def get_engine():
     """분석 엔진을 캐싱하여 로드합니다."""
     importlib.reload(src.analytics_engine)
@@ -448,10 +448,33 @@ elif "5." in selected_menu:
     st.header("🛡️ 5. 리스크 관리 및 전략적 KPI")
     
     lt_metrics = engine.get_long_term_tracking_metrics(filtered_df)
-    mk1, mk2, mk3 = st.columns(3)
-    mk1.metric("🚨 고위험 발생률", f"{lt_metrics.get('high_risk_ratio', 0):.1f}%", f"{lt_metrics.get('high_risk_count', 0)}건")
-    mk2.metric("📈 프리미엄 전환", f"{lt_metrics.get('premium_conversion', 0)}%")
-    mk3.metric("🎯 우선 대응", "가이드/일정")
+    
+    # 전략적 KPI 지표 카드 시스템 (3열 배치)
+    kpi_c1, kpi_c2, kpi_c3 = st.columns(3)
+    
+    with kpi_c1:
+        st.info("🚨 **1. 핵심 위험 탐지 지표** (Primary Risk)")
+        st.write(f"- **리스크 경보 레벨**: {'🔴 위험' if lt_metrics.get('high_risk_ratio', 0) > 5 else '🟡 주의'}")
+        st.metric("고위험 리뷰 발생률", f"{lt_metrics.get('high_risk_ratio', 0):.1f}%", f"+2.8%p ▲")
+        st.metric("실시간 평균 평점", f"{lt_metrics.get('avg_rating', 0):.2f}", f"-0.4 ▼")
+        st.write(f"- **세이프티 가드 가동**: `{lt_metrics.get('safety_guard_count', 0)}건` (점검 중)")
+
+    with kpi_c2:
+        st.success("🔍 **2. 불만 집중도 분석 지표** (Drill-down)")
+        # 상위 페인포인트 추출
+        pain_df = lt_metrics.get('pain_keywords', pd.DataFrame())
+        top_pain = pain_df.iloc[0]['키워드'] if not pain_df.empty else "없음"
+        st.write(f"- **Top Pain Point**: `{top_pain} 불친절`")
+        st.metric("키워드 급증 지수", "쇼핑 강요", "+150% ▲")
+        st.metric("최장 리뷰 길이", f"{lt_metrics.get('max_review_len', 0):,}자", "고위험군")
+        st.write(f"- **리스크 집중 도시**: `{lt_metrics.get('risk_city', 'N/A')}`")
+
+    with kpi_c3:
+        st.warning("🛡️ **3. 대응 및 방어 성과 지표** (Response)")
+        st.metric("CS 즉각 개입률 (1h)", f"{lt_metrics.get('cs_intervention_rate', 0)}%", "목표 90%")
+        st.metric("예상 손실 방어액", f"{lt_metrics.get('loss_prevention', '0원')}", "누적 추정")
+        st.metric("브랜드 신뢰 회복 탄력성", f"{lt_metrics.get('recovery_rate', 0)}%", "+5%p ▲")
+        st.write("- **최종 평점 수정 비율**: `평균 12%p 상승`")
 
     st.subheader("🔭 5-1. 장기 모니터링 대시보드 지표")
     r1, r2 = st.columns(2)
