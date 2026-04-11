@@ -7,8 +7,8 @@ from typing import Dict, Any
 try:
     from data_loader import preprocess_and_merge, load_all_data
 except ImportError:
-    # streamlit에서 실행 시 경로 문제를 방지하기 위해 추가
     import sys
+    import os
     sys.path.append(os.path.dirname(__file__))
     from data_loader import preprocess_and_merge, load_all_data
 
@@ -146,7 +146,9 @@ class AnalyticsEngine:
         target_df = df if df is not None else self.df
         brands = ['메리어트', '빈펄', '쉐라톤', '인터컨티넨탈', '하얏트', '힐튼', '노보텔', '마리나베이']
         pkg_df = target_df[target_df['상품군'] == '패키지'].copy() if '상품군' in target_df.columns else target_df.copy()
-        pkg_df['브랜드포함'] = pkg_df['상품명'].str.contains('|'.join(brands), na=False)
+        pkg_df['브랜드포함'] = pkg_df['상품군'] == '패키지' # 임시 로직
+        if '상품명' in pkg_df.columns:
+            pkg_df['브랜드포함'] = pkg_df['상품명'].str.contains('|'.join(brands), na=False)
         premium = pkg_df.groupby('브랜드포함')['성인가격'].mean().reset_index()
         premium['유명브랜드여부'] = premium['브랜드포함'].map({True: '포함', False: '미포함'})
         return premium.rename(columns={'성인가격': '평균가격'})
