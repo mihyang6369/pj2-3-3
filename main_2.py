@@ -91,39 +91,7 @@ if "1." in selected_menu:
         "팬데믹 이후 글로벌 항공 수요는 2023년을 기점으로 폭발적인 V자 회복세를 보이고 있으며, 2024년 현재 전성기 실적의 90% 수준까지 도달한 것으로 판단됩니다. 월별 추이 분석 결과, 1~2월 겨울 성수기와 7~8월 여름 휴가철에 수요가 집중되는 전형적인 이봉형(Bimodal) 패턴을 보입니다. 이러한 수요 집중 현상은 항공권 가격 상승과 현지 인프라 혼잡도를 동시에 유발하므로, 하나투어는 성수기 좌석 선확보 전략(Block seat)을 강화하는 동시에 수요가 급락하는 4~5월과 10~11월 비수기 기간을 타겟팅한 '시즈널 특가' 및 '테마 여행' 포트폴리오를 구성하여 연간 수익 총량을 평준화해야 합니다. 특히 최근 고금리 기조에도 불구하고 장거리 노선보다 동남아 중심의 단거리 노선 회복이 빠른 점을 고려할 때, 당분간은 근거리 핵심 거점에 대한 공급 집중화 전략이 유효할 것입니다."
     )
 
-    st.subheader("📊 1-2. 국가 및 도시별 여객 누적 실적")
-    c1, c2 = st.columns(2)
-    with c1:
-        st.plotly_chart(px.bar(engine.get_cumulative_performance_by_country().head(10), x="유임승객(명)", y="국가", 
-                        orientation='h', title="국가별 누적 실적 (Top 10)", color_discrete_sequence=[PRIMARY_COLOR]), use_container_width=True)
-    with c2:
-        df_city_cum = engine.get_cumulative_performance_by_city()
-        y_col = "유임객(명)" if "유임객(명)" in df_city_cum.columns else "유임승객(명)"
-        st.plotly_chart(px.bar(df_city_cum.head(10), x=y_col, y="도시", 
-                        orientation='h', title="도시별 누적 실적 (Top 10)", color_discrete_sequence=[SECONDARY_COLOR]), use_container_width=True)
-    
-    render_analysis_box(
-        "지역별 시장 지배력 및 노선 거점 분석",
-        "국가별, 도시별 여객 실적 상위 10개 지역의 누적 실적 데이터를 기반으로 한 순위 지표입니다.",
-        "국가별 실적 분석 결과 베트남과 일본이 전체 여객의 상당 부분을 점유하며 하나투어의 핵심 캐시카우(Cash Cow) 역할을 지속하고 있음이 증명됩니다. 특히 도시별 차트에서 다낭과 나트랑은 단일 도시임에도 불구하고 일부 국가 전체의 여객 수와 맞먹는 압도적 유입량을 기록 중입니다. 이는 해당 지역의 인프라 성숙도가 매우 높음을 의미하지만, 동시에 특정 노선에 대한 지나친 의존도가 외부 환경 변화(현지 물가 상승, 천재지변 등)에 취약한 구조적 리스크를 안고 있음을 시사합니다. 전략적으로는 현재의 다낭/나트랑 지배력을 공고히 유지하되, 누적 실적 상위권에 새롭게 진입 중인 싱가포르 및 치앙마이와 같은 신규 거점 도시에 대한 공격적인 인프라 투자와 전용 상품 개발을 병행하여 리스크 분산 및 신규 수요 창출을 꾀해야 합니다. 시장 지배력이 큰 노선일수록 LCC 점유율이 높아 가격 경쟁이 치열하므로 차별화된 하나투어 전용 상품 기획이 필수적입니다."
-    )
-
-    st.subheader("📍 1-3. 타겟 도시 노선 구조 및 항공사 점유율")
-    col3, col4 = st.columns([1.5, 1])
-    with col3:
-        st.plotly_chart(px.line(engine.get_specific_cities_aviation_monthly(), x="월", y="유임승객(명)", color="도시", 
-                         title="타겟 도시별 월별 실적 추이", color_discrete_sequence=HANA_COLORS), use_container_width=True)
-    with col4:
-        st.plotly_chart(px.bar(engine.get_airline_share_in_specific_cities(), x="도시", y="유임승객(명)", color="항공사명", 
-                        barmode="stack", title="도시별 항공사 점유율", color_discrete_sequence=HANA_COLORS), use_container_width=True)
-    
-    render_analysis_box(
-        "공급망 구조 및 항공사 경쟁 구도 해석",
-        "분석 대상 3대 도시의 항공사별 공급 비중과 월별 여객 변동성을 결합하여 분석한 지표입니다.",
-        "타겟 도시별 항공 구조를 살펴보면, 다낭과 나트랑 노선은 국내외 LCC(저비용항공사) 점유율이 75%를 상회하는 전형적인 '가격 민감 시장' 구조를 띠고 있습니다. 이는 하나투어가 대량의 좌석을 저가에 공급받을 수 있는 환경을 제공하지만, 동시에 항공사 간 출혈 경쟁으로 인한 운항 취소나 시간 변경 등 서비스 불안정 리스크를 상시 내포합니다. 반면 싱가포르 노선은 FSC(대형항공사)의 비중이 타 도시 대비 월등히 높아 프리미엄 패키지 및 비즈니스 레저(Bleisure) 수요를 흡수하기에 최적화된 구조입니다. 이러한 항공 구조적 차이는 지역별 상품 기획의 방향성을 결정짓는 핵심 근거가 됩니다. 다낭은 항공 단가 우위를 바탕으로 한 가격 경쟁력 중심의 '매스 마켓' 전략을, 싱가포르는 높은 항공 서비스 품질을 기반으로 한 '고가 프리미엄' 전략을 고착화하여 지역별 포트폴리오 믹스를 최적화해야 합니다. 주력 항공사와의 안정적인 관계 유지가 전체 상품 품질의 1단계 관리 지점입니다."
-    )
-
-    st.subheader("🌏 1-4. 해외 관광객 목적지별 통계 (Tourist Destination Stats)")
+    st.subheader("📊 1-2. 해외 관광객 목적지별 통계 (Tourist Destination Stats)")
     df_dest = engine.get_destination_stats()
     if not df_dest.empty:
         df_dest = df_dest[df_dest['연도'] >= 2020].copy()
@@ -149,6 +117,22 @@ if "1." in selected_menu:
             "merged_overseas_destination.csv 데이터를 기반으로 한 2020년 이후 글로벌 관광객 이동 통계입니다.",
             "해외 관광객 목적지 분석 결과, 아시아 지역이 전체 방문객의 60% 이상을 점유하며 압도적인 선호도를 보이고 있으나, 최근 유럽 및 미주 지역의 회복세 또한 두드러지게 나타나고 있습니다. 국가별 Top 10 지표는 하나투어가 향후 포트폴리오를 확장해야 할 잠재적 시장을 지목합니다. 특히 특정 대륙에 치우치지 않는 글로벌 다각화 전략은 항공 노선의 불안정성이나 지역적 리스크를 상쇄할 수 있는 강력한 방어 기제가 됩니다. 데이터는 현재 주력인 동남아 시장의 지배력을 유지하면서도, 고부가가치 창출이 가능한 장거리 대륙별 테마 상품의 비중을 점진적으로 확대해야 함을 시사합니다."
         )
+
+    st.subheader("📍 1-3. 타겟 도시 노선 구조 및 항공사 점유율")
+    col3, col4 = st.columns([1.5, 1])
+    with col3:
+        st.plotly_chart(px.line(engine.get_specific_cities_aviation_monthly(), x="월", y="유임승객(명)", color="도시", 
+                         title="타겟 도시별 월별 실적 추이", color_discrete_sequence=HANA_COLORS), use_container_width=True)
+    with col4:
+        st.plotly_chart(px.bar(engine.get_airline_share_in_specific_cities(), x="도시", y="유임승객(명)", color="항공사명", 
+                        barmode="stack", title="도시별 항공사 점유율", color_discrete_sequence=HANA_COLORS), use_container_width=True)
+    
+    render_analysis_box(
+        "공급망 구조 및 항공사 경쟁 구도 해석",
+        "분석 대상 3대 도시의 항공사별 공급 비중과 월별 여객 변동성을 결합하여 분석한 지표입니다.",
+        "타겟 도시별 항공 구조를 살펴보면, 다낭과 나트랑 노선은 국내외 LCC(저비용항공사) 점유율이 75%를 상회하는 전형적인 '가격 민감 시장' 구조를 띠고 있습니다. 이는 하나투어가 대량의 좌석을 저가에 공급받을 수 있는 환경을 제공하지만, 동시에 항공사 간 출혈 경쟁으로 인한 운항 취소나 시간 변경 등 서비스 불안정 리스크를 상시 내포합니다. 반면 싱가포르 노선은 FSC(대형항공사)의 비중이 타 도시 대비 월등히 높아 프리미엄 패키지 및 비즈니스 레저(Bleisure) 수요를 흡수하기에 최적화된 구조입니다. 이러한 항공 구조적 차이는 지역별 상품 기획의 방향성을 결정짓는 핵심 근거가 됩니다. 다낭은 항공 단가 우위를 바탕으로 한 가격 경쟁력 중심의 '매스 마켓' 전략을, 싱가포르는 높은 항공 서비스 품질을 기반으로 한 '고가 프리미엄' 전략을 고착화하여 지역별 포트폴리오 믹스를 최적화해야 합니다. 주력 항공사와의 안정적인 관계 유지가 전체 상품 품질의 1단계 관리 지점입니다."
+    )
+
 
 # ---------------------------------------------------------
 # [단계 2] 📦 하나투어 상품 포트폴리오 진단 (Product Mix)
@@ -205,9 +189,9 @@ elif "2." in selected_menu:
                                      title="도시별 쇼핑 횟수 공급량", color_discrete_sequence=HANA_COLORS), use_container_width=True)
     
     render_analysis_box(
-        "쇼핑 기반 수익 모델의 지역별 편중 및 역상관성 분석",
-        "다낭 지역의 특수한 쇼핑 상품 비중과 쇼핑 횟수가 상품 판매가에 미치는 영향을 분석한 지표입니다.",
-        "데이터 분석 결과 다낭 노선은 '쇼핑 3회' 포함 상품이 전체의 약 45%를 차지하며 '저가-다쇼핑' 구조가 매우 고착화된 기형적 시장 형태를 띠고 있습니다. 반면 타 도시는 쇼핑 0~1회의 클린한 상품 비중이 점진적으로 확대되는 추세입니다. 쇼핑 횟수와 가격의 상관관계 그래프에서 보듯, 쇼핑 횟수가 1회 추가될 때마다 상품 가격은 평균 약 12~15만 원씩 급감하는 역비례 패턴이 관측됩니다. 이는 현지 쇼핑 센터로부터 받는 리베이트가 상품 원가를 보전하는 핵심 수익원임을 방증하지만, 고객은 이를 '강요된 일정'으로 인식하여 장기적인 브랜드 만족도를 훼손하고 있습니다. 특히 다낭의 경우 이러한 구조적 한계로 인해 '하나투어 상품은 저렴하지만 힘들다'는 부정적 인식이 확산될 우려가 큽니다. 따라서 다낭 지역에서는 수익 모델을 쇼핑 리베이트가 아닌 '선택 관광의 고도화'와 '현지 미식/문화 경험' 유료화로 전환하여, 쇼핑 횟수를 1회 이하로 낮춘 세미-프리미엄 상품군으로의 대대적인 포트폴리오 이동이 시급합니다."
+        "📊 쇼핑-가격 기대 불일치(Expectation Mismatch)에 따른 만족도 폭락 분석",
+        "📍 데이터 근거 (Data Basis)\n다낭 노선의 쇼핑 횟수별 '상품 평균 판매가'와 '실제 고객 평점'을 이중 축으로 대조한 지표입니다.",
+        "💡 그래프 해석 (Interpretation)\n일반적인 업계 상식인 '쇼핑 횟수와 가격의 역비례(저가-다쇼핑)' 공식이 다낭 핵심 라인업에서 완전히 붕괴된 기형적 구조가 관측됩니다. 쇼핑 2회 상품은 평균 60만 원대로 가성비 포지셔닝이 되어 평점이 가장 높게(4.66점) 방어되고 있습니다.\n반면, 전체 모객의 절반(5,257건)을 차지하는 '쇼핑 3회(Max)' 상품군들은 평균 가격이 100만 원 선으로 도리어 급등함에도, 현지 쇼핑 강요 횟수는 가장 많습니다. 결과적으로 \"비싼 돈을 지불하고도 쇼핑 센터를 3곳이나 돌아야 하는\" 극심한 **기대 불일치(Expectation Disconfirmation)**가 발생하여 전체 평점을 4.07점(최저점)으로 끌어내리는 브랜드 훼손의 주범이 되고 있습니다."
     )
 
 # ---------------------------------------------------------
@@ -253,7 +237,7 @@ elif "3." in selected_menu:
         "평점 영향도 분석 결과 '가이드의 친절 및 전문성'과 '숙소 위생 상태'가 전체 만족도의 70%를 결정하는 지배적 변수로 식별되었습니다. 이는 여행 상품의 논리적 구성보다 현장에서 느끼는 '인적 서비스'와 '물리적 휴식 환경'이라는 본질적 요소가 평점을 결정하는 핵심임을 뜻합니다. 도시별 분포 분석에서는 다낭의 경우 좌측(저평점)으로 긴 꼬리가 형성되는 부정적 편중 현상이 관측되는데, 이는 가이드 품질 편차가 상품의 가치를 훼손하고 있음을 방증합니다. 반면 나트랑은 4~5점에 데이터가 밀집된 'J자형' 분포를 보이며 강력한 추천 의향을 보입니다. 전략적으로는 가이드 평점 하위 15%에 대한 강력한 퇴출 시스템을 가동하고, 숙소 배정 시 위생 관련 키워드가 반복되는 제휴 호텔을 포트폴리오에서 배제하는 등 '마이너스 요인 제거' 활동이 플러스 요인 추가보다 만족도 향상에 훨씬 효율적임을 시사합니다."
     )
 
-    st.subheader("👥 3-4. 인구통계학적 분석 및 히트맵")
+    st.subheader("👥 3-4. 인구통계학적 분석 및 히트맵 (경험 속성 교차 분석)")
     ca, cc = st.columns(2)
     demog = engine.get_review_demographics(filtered_df)
     with ca: 
@@ -263,16 +247,18 @@ elif "3." in selected_menu:
         st.plotly_chart(px.bar(demog['companion'], x='동행', y='평균평점', color='평균평점', 
                                    title="동행 그룹별 만족도", color_continuous_scale='Viridis'), use_container_width=True)
     
-    # [추가] 도시별 동행별 평균 리뷰 길이
-    st.markdown("#### 📏 도시별 동행별 평균 리뷰 길이 (텍스트 민감도)")
-    sens_df = filtered_df.copy()
-    sens_df['리뷰길이'] = sens_df['내용'].astype(str).apply(len)
-    cc1_df = sens_df.groupby(['대상도시', '동행'])['리뷰길이'].mean().reset_index()
-    fig_cc1 = px.bar(cc1_df, x='리뷰길이', y='동행', color='대상도시', barmode='group', color_discrete_sequence=HANA_COLORS)
-    st.plotly_chart(fig_cc1, use_container_width=True)
-
-    st.plotly_chart(px.imshow(engine.get_rating_heatmap_data(filtered_df), text_auto='.1f', 
-                               title="연령대 x 동행별 평점 히트맵", color_continuous_scale='YlOrRd'), use_container_width=True)
+    # [개선] 리뷰 길이와 히트맵을 2열로 배치
+    c_len1, c_heat2 = st.columns(2)
+    with c_len1:
+        st.markdown("#### 📏 도시별 동행별 평균 리뷰 길이")
+        sens_df = filtered_df.copy()
+        sens_df['리뷰길이'] = sens_df['내용'].astype(str).apply(len)
+        cc1_df = sens_df.groupby(['대상도시', '동행'])['리뷰길이'].mean().reset_index()
+        fig_cc1 = px.bar(cc1_df, x='리뷰길이', y='동행', color='대상도시', barmode='group', color_discrete_sequence=HANA_COLORS)
+        st.plotly_chart(fig_cc1, use_container_width=True)
+    with c_heat2:
+        st.plotly_chart(px.imshow(engine.get_rating_heatmap_data(filtered_df), text_auto='.1f', 
+                                   title="연령대 x 동행별 평점 히트맵", color_continuous_scale='YlOrRd'), use_container_width=True)
     
     render_analysis_box(
         "타겟 세그먼트별 경험 가치 및 이탈 리스크 진단",
@@ -291,16 +277,18 @@ elif "3." in selected_menu:
         st.plotly_chart(px.line(shop_rating, x="쇼핑횟수", y="평점", color="대상도시", markers=True, 
                                 title="도시별 쇼핑x평점", color_discrete_sequence=HANA_COLORS), use_container_width=True)
     
-    # [추가] 도시별 쇼핑횟수별 평균가격과 평점 (이중축)
+    # [개선] 도시별 쇼핑 정책 매트릭스를 3열로 배치
     st.markdown("#### 📊 도시별 쇼핑 정책에 따른 가격-품질 매트릭스 (이중 축)")
-    for city in filtered_df['대상도시'].unique():
-        city_df = filtered_df[filtered_df['대상도시'] == city]
-        city_shop_stats = city_df.groupby('쇼핑횟수').agg({'성인가격': 'mean', '평점': 'mean'}).reset_index()
-        fig_dual_shop = make_subplots(specs=[[{"secondary_y": True}]])
-        fig_dual_shop.add_trace(go.Bar(x=city_shop_stats['쇼핑횟수'], y=city_shop_stats['성인가격'], name="평균 가격", marker_color=PRIMARY_COLOR, opacity=0.6), secondary_y=False)
-        fig_dual_shop.add_trace(go.Scatter(x=city_shop_stats['쇼핑횟수'], y=city_shop_stats['평점'], name="평균 평점", line=dict(color='red', width=3)), secondary_y=True)
-        fig_dual_shop.update_layout(title=f"[{city}] 쇼핑횟수별 가격 및 평점 추이", height=300, showlegend=False)
-        st.plotly_chart(fig_dual_shop, use_container_width=True)
+    city_cols = st.columns(len(filtered_df['대상도시'].unique()))
+    for idx, city in enumerate(filtered_df['대상도시'].unique()):
+        with city_cols[idx]:
+            city_df = filtered_df[filtered_df['대상도시'] == city]
+            city_shop_stats = city_df.groupby('쇼핑횟수').agg({'성인가격': 'mean', '평점': 'mean'}).reset_index()
+            fig_dual_shop = make_subplots(specs=[[{"secondary_y": True}]])
+            fig_dual_shop.add_trace(go.Bar(x=city_shop_stats['쇼핑횟수'], y=city_shop_stats['성인가격'], name="가격", marker_color=PRIMARY_COLOR, opacity=0.6), secondary_y=False)
+            fig_dual_shop.add_trace(go.Scatter(x=city_shop_stats['쇼핑횟수'], y=city_shop_stats['평점'], name="평점", line=dict(color='red', width=3)), secondary_y=True)
+            fig_dual_shop.update_layout(title=f"[{city}] 추이", height=300, showlegend=False, margin=dict(l=20,r=20,t=40,b=20))
+            st.plotly_chart(fig_dual_shop, use_container_width=True)
 
     render_analysis_box(
         "가격 가치 및 쇼핑 옵션 저항점(Dead-cross) 정밀 분석",
@@ -372,12 +360,24 @@ elif "4." in selected_menu:
     with ct2: st.plotly_chart(px.pie(engine.get_review_by_duration(filtered_df), values='리뷰수', names='일정', 
                                      hole=0.4, title="여행 일정별 리뷰 비중", color_discrete_sequence=HANA_COLORS), use_container_width=True)
     
-    # [추가] 도시별 월별 평균 평점 추이 (Y축 4점 이상)
-    st.markdown("#### 📈 도시별 월별 평균 평점 추이 (미세 품질 변동성 포착)")
-    monthly_city_r = filtered_df.groupby(['월', '대상도시'])['평점'].mean().reset_index()
-    fig_ct_trend = px.line(monthly_city_r, x='월', y='평점', color='대상도시', markers=True, color_discrete_sequence=HANA_COLORS)
-    fig_ct_trend.update_layout(yaxis=dict(range=[4.0, 5.0])) # 평점 4점 이상부터 시각화
-    st.plotly_chart(fig_ct_trend, use_container_width=True)
+    # [개선] 월별 평점 추이와 평점대별 리뷰 길이를 2열로 배치
+    st.markdown("#### 📈 월별 만족도 변동성 및 평점대별 텍스트 디테일 분석")
+    tr_col1, tr_col2 = st.columns(2)
+    with tr_col1:
+        monthly_city_r = filtered_df.groupby(['월', '대상도시'])['평점'].mean().reset_index()
+        fig_ct_trend = px.line(monthly_city_r, x='월', y='평점', color='대상도시', markers=True, 
+                               title="도시별 월별 평균 평점 추이", color_discrete_sequence=HANA_COLORS)
+        fig_ct_trend.update_layout(yaxis=dict(range=[4.0, 5.0])) 
+        st.plotly_chart(fig_ct_trend, use_container_width=True)
+    with tr_col2:
+        rev_len_df = engine.get_review_length_analysis(filtered_df)
+        bins = [0, 2.5, 3.5, 4.5, 5.1]; labels = ['1-2점대', '3점대', '4점대', '5점대']
+        rev_len_df_copy = rev_len_df.copy()
+        rev_len_df_copy['평점구간'] = pd.cut(rev_len_df_copy['평점'], bins=bins, labels=labels)
+        rl3_df = rev_len_df_copy.groupby(['대상도시', '평점구간'])['리뷰길이'].mean().reset_index()
+        fig_rl3 = px.bar(rl3_df, x='평점구간', y='리뷰길이', color='대상도시', barmode='group', 
+                         title="도시별 평점 구간별 평균 리뷰 길이", color_discrete_sequence=HANA_COLORS)
+        st.plotly_chart(fig_rl3, use_container_width=True)
 
     render_analysis_box(
         "수요 시계열 및 상품 선호 일정 구조 분석",
@@ -386,20 +386,10 @@ elif "4." in selected_menu:
     )
 
     st.subheader("📏 4-5. 리뷰 텍스트 길이 및 만족도 상관성")
-    rev_len_df = engine.get_review_length_analysis(filtered_df)
     rl1, rl2 = st.columns(2)
     with rl1: st.plotly_chart(px.histogram(rev_len_df, x="리뷰길이", nbins=50, title="리뷰 텍스트 길이 분포", color_discrete_sequence=[PRIMARY_COLOR]), use_container_width=True)
     with rl2: st.plotly_chart(px.scatter(rev_len_df, x="리뷰길이", y="평점", color="평점", trendline="ols", 
                                          title="리뷰 길이 x 평점 OLS", color_continuous_scale="RdYlGn"), use_container_width=True)
-    
-    # [추가] 도시별 평점대별 리뷰 길이
-    st.markdown("#### 📏 도시별 평점 구간별 평균 리뷰 길이 비교")
-    bins = [0, 2.5, 3.5, 4.5, 5.1]; labels = ['1-2점대', '3점대', '4점대', '5점대']
-    rev_len_df_copy = rev_len_df.copy()
-    rev_len_df_copy['평점구간'] = pd.cut(rev_len_df_copy['평점'], bins=bins, labels=labels)
-    rl3_df = rev_len_df_copy.groupby(['대상도시', '평점구간'])['리뷰길이'].mean().reset_index()
-    fig_rl3 = px.bar(rl3_df, x='평점구간', y='리뷰길이', color='대상도시', barmode='group', color_discrete_sequence=HANA_COLORS)
-    st.plotly_chart(fig_rl3, use_container_width=True)
 
     render_analysis_box(
         "리뷰 디테일과 고객 충성도/분노 상관관계 심층 분석",
@@ -418,10 +408,21 @@ elif "4." in selected_menu:
         "버블맵은 각 도시가 현재 시장에서 어떤 위치를 점유하고 있는지 극명하게 보여줍니다. 맵의 최상단(고품질)에 위치한 싱가포르-노쇼핑 그룹은 가장 이상적인 모델이지만 버블의 크기가 상대적으로 작아 모객량 증대가 필요함을 시사합니다. 반면 맵의 하단(저품질)에 거대하게 형성된 다낭-쇼핑 3회 그룹은 하나투어의 양적 성장을 주도하고 있으나 브랜드 가치를 갉아먹는 '양날의 검' 임이 데이터로 확인됩니다. 나트랑은 중간 지대에서 비교적 고른 품질과 적정한 수요를 확보하며 가장 건강한 성장 곡선을 그리고 있습니다. 향후 전략의 핵심은 거대 버블인 다낭의 위치를 상향 이동시키는 것입니다. 이를 위해 쇼핑 횟수를 3회에서 1~2회로 축소하되, 버블의 크기(수요)를 유지할 수 있도록 '쇼핑 제외 시간의 체험 프로그램화'를 통해 상품 매력도를 보전해야 합니다. 버블의 위치가 우상향할수록 하나투어의 장기적인 시장 지배력과 수익의 질은 비약적으로 향상될 것입니다."
     )
 
-    st.subheader("🧬 4-7. AI 기반 상품 세그먼트 군집화")
-    segments = engine.get_clustered_segments(filtered_df)
-    st.plotly_chart(px.scatter(segments, x="쇼핑횟수", y="평점", color="Segment", size="성인가격", 
-                               title="K-Means 기반 머신러닝 군집 분석", color_discrete_sequence=HANA_COLORS), use_container_width=True)
+    # [개선] 세그먼트 군집화와 부정 키워드 히트맵을 2열로 배치
+    st.divider()
+    seg_col1, seg_col2 = st.columns(2)
+    with seg_col1:
+        st.subheader("🧬 4-7. AI 기반 상품 세그먼트 군집화")
+        segments = engine.get_clustered_segments(filtered_df)
+        st.plotly_chart(px.scatter(segments, x="쇼핑횟수", y="평점", color="Segment", size="성인가격", 
+                                   title="K-Means 기반 머신러닝 군집 분석", color_discrete_sequence=HANA_COLORS), use_container_width=True)
+    with seg_col2:
+        st.subheader("🗺️ 4-8. 부정 키워드 히트맵")
+        neg_kw_h = engine.get_city_negative_keyword_heatmap(filtered_df)
+        if not neg_kw_h.empty:
+            st.plotly_chart(px.imshow(neg_kw_h, text_auto=True, color_continuous_scale=SEQUENTIAL_REDS, 
+                                       title="지역별 주요 Pain Points 입체 분석"), use_container_width=True)
+        else: st.info("히트맵 데이터가 충분하지 않습니다.")
     
     render_analysis_box(
         "머신러닝 기반 상품 구조적 세그먼트 진단",
@@ -429,13 +430,6 @@ elif "4." in selected_menu:
         "AI 분석 결과 하나투어의 상품군은 크게 3가지 클러스터로 구분됩니다. 1) '수익 지향형(저가/다쇼핑)': 평점 편차가 매우 크며 리베이트 구조에 의존하는 그룹, 2) '표준 실속형': 가격과 품질의 균형을 맞춘 주력 그룹, 3) '프리미엄 가치형(고가/노쇼핑)': 높은 가격에도 불구하고 압도적으로 좁고 높은 평점 분포를 보이는 우량 그룹입니다. 주목할 점은 '프리미엄 가치형' 상품의 평점 분포가 가장 견고하다는 사실입니다. 이는 고객이 단순히 '비싼 가격'에 화를 내는 것이 아니라, 지불한 비용에 상응하는 '품격 있는 시간'을 보장받지 못할 때 평점이 추락함을 입증합니다. 수익 지향형 군집에서 발생하는 평점 3.0 이하의 리스크 데이터를 머신러닝이 상시 감시하도록 하고, 해당 군집의 상품이 일정 비중 이상 평점이 하락할 경우 자동으로 표준 실속형으로의 구조 개선 권고안이 생성되는 데이터 기반 상품 관리 시스템(MD Optimizer)의 도입을 제안합니다."
     )
 
-    st.subheader("🗺️ 4-8. 도시별 부정 핵심 키워드 히트맵")
-    neg_kw_h = engine.get_city_negative_keyword_heatmap(filtered_df)
-    if not neg_kw_h.empty:
-        st.plotly_chart(px.imshow(neg_kw_h, text_auto=True, color_continuous_scale=SEQUENTIAL_REDS, 
-                                   title="지역별 주요 Pain Points 입체 분석"), use_container_width=True)
-    else: st.info("히트맵 데이터가 충분하지 않습니다.")
-    
     render_analysis_box(
         "지역별 품질 저하 핵심 요인 및 정밀 타격 분석",
         "부정 리뷰 텍스트 데이터에서 도시별 불만 키워드의 밀집도를 시각화한 리스크 히트맵입니다.",
