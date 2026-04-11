@@ -35,6 +35,13 @@ def load_all_data() -> Dict[str, pd.DataFrame]:
     data['aviation'] = pd.read_csv(os.path.join(DATA_DIR, 'processed_aviation_performance.csv'), encoding='utf-8-sig')
     data['itineraries'] = pd.read_csv(os.path.join(DATA_DIR, 'hanatour_all_itineraries.csv'), encoding='utf-8-sig')
     
+    # 1.1 해외 관광객 목적지별 통계 데이터 로드 추가
+    dest_path = os.path.join(DATA_DIR, 'merged_overseas_destination.csv')
+    if os.path.exists(dest_path):
+        data['destinations'] = pd.read_csv(dest_path, encoding='utf-8-sig')
+    else:
+        data['destinations'] = pd.DataFrame(columns=['연도', '국가', '지역', '관광객수'])
+    
     # 2. 도시별/상품 유형별로 분산된 통합 데이터들을 반복문을 통해 로드합니다.
     cities = ['danang', 'nhatrang', 'singapore'] # 분석 대상 3대 도시
     types = {'': '패키지', '_airtel': '에어텔', '_tour_ticket': '투어/티켓'} # 상품 유형 매핑
