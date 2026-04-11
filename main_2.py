@@ -106,22 +106,7 @@ if "1." in selected_menu:
         "국가별 실적 분석 결과 베트남과 일본이 전체 여객의 상당 부분을 점유하며 하나투어의 핵심 캐시카우(Cash Cow) 역할을 지속하고 있음이 증명됩니다. 특히 도시별 차트에서 다낭과 나트랑은 단일 도시임에도 불구하고 일부 국가 전체의 여객 수와 맞먹는 압도적 유입량을 기록 중입니다. 이는 해당 지역의 인프라 성숙도가 매우 높음을 의미하지만, 동시에 특정 노선에 대한 지나친 의존도가 외부 환경 변화(현지 물가 상승, 천재지변 등)에 취약한 구조적 리스크를 안고 있음을 시사합니다. 전략적으로는 현재의 다낭/나트랑 지배력을 공고히 유지하되, 누적 실적 상위권에 새롭게 진입 중인 싱가포르 및 치앙마이와 같은 신규 거점 도시에 대한 공격적인 인프라 투자와 전용 상품 개발을 병행하여 리스크 분산 및 신규 수요 창출을 꾀해야 합니다. 시장 지배력이 큰 노선일수록 LCC 점유율이 높아 가격 경쟁이 치열하므로 차별화된 하나투어 전용 상품 기획이 필수적입니다."
     )
 
-    st.subheader("📍 1-3. 타겟 도시 노선 구조 및 항공사 점유율")
-    col3, col4 = st.columns([1.5, 1])
-    with col3:
-        st.plotly_chart(px.line(engine.get_specific_cities_aviation_monthly(), x="월", y="유임승객(명)", color="도시", 
-                         title="타겟 도시별 월별 실적 추이", color_discrete_sequence=HANA_COLORS), use_container_width=True)
-    with col4:
-        st.plotly_chart(px.bar(engine.get_airline_share_in_specific_cities(), x="도시", y="유임승객(명)", color="항공사명", 
-                        barmode="stack", title="도시별 항공사 점유율", color_discrete_sequence=HANA_COLORS), use_container_width=True)
-    
-    render_analysis_box(
-        "공급망 구조 및 항공사 경쟁 구도 해석",
-        "분석 대상 3대 도시의 항공사별 공급 비중과 월별 여객 변동성을 결합하여 분석한 지표입니다.",
-        "타겟 도시별 항공 구조를 살펴보면, 다낭과 나트랑 노선은 국내외 LCC(저비용항공사) 점유율이 75%를 상회하는 전형적인 '가격 민감 시장' 구조를 띠고 있습니다. 이는 하나투어가 대량의 좌석을 저가에 공급받을 수 있는 환경을 제공하지만, 동시에 항공사 간 출혈 경쟁으로 인한 운항 취소나 시간 변경 등 서비스 불안정 리스크를 상시 내포합니다. 반면 싱가포르 노선은 FSC(대형항공사)의 비중이 타 도시 대비 월등히 높아 프리미엄 패키지 및 비즈니스 레저(Bleisure) 수요를 흡수하기에 최적화된 구조입니다. 이러한 항공 구조적 차이는 지역별 상품 기획의 방향성을 결정짓는 핵심 근거가 됩니다. 다낭은 항공 단가 우위를 바탕으로 한 가격 경쟁력 중심의 '매스 마켓' 전략을, 싱가포르는 높은 항공 서비스 품질을 기반으로 한 '고가 프리미엄' 전략을 고착화하여 지역별 포트폴리오 믹스를 최적화해야 합니다."
-    )
-
-    st.subheader("🌏 1-4. 해외 관광객 목적지별 통계 (Tourist Destination Stats)")
+    st.subheader("📍 1-3. 해외 관광객 목적지별 통계 (Tourist Destination Stats)")
     df_dest = engine.get_destination_stats()
     if not df_dest.empty:
         df_dest = df_dest[df_dest['연도'] >= 2020].copy()
@@ -293,16 +278,22 @@ elif "4." in selected_menu:
     
     st.subheader("🔍 4-1. 도시별 핵심 세일즈 키워드 마이닝 (TF-IDF)")
     kw_data = engine.get_keyword_mining_data(filtered_df)
-    kw_cols = st.columns(3)
+    kw_col1, kw_col2, kw_col3 = st.columns(3)
+    
     cities_list = ['다낭', '나트랑', '싱가포르']
+    kw_cols = [kw_col1, kw_col2, kw_col3]
+    
     for i, city in enumerate(cities_list):
         with kw_cols[i]:
             city_kw = kw_data[kw_data['대상도시'] == city].sort_values(by='가중치', ascending=True)
             if not city_kw.empty:
-                st.plotly_chart(px.bar(city_kw, x="가중치", y="키워드", orientation='h', title=f"[{city}] Top 10", 
-                                       color_discrete_sequence=[HANA_COLORS[i]]), use_container_width=True)
+                fig_city_kw = px.bar(city_kw, x="가중치", y="키워드", 
+                                    orientation='h', title=f"[{city}] Top 15 키워드",
+                                    color_discrete_sequence=[px.colors.qualitative.Vivid[i]])
+                st.plotly_chart(fig_city_kw, use_container_width=True)
     
     st.divider()
+    
     st.subheader("🎭 4-3. 긍정 vs 부정 핵심 키워드 비교 (TF-IDF)")
     sentiment_kw = engine.get_review_sentiment_keywords(filtered_df)
     sk1, sk2 = st.columns(2)
