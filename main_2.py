@@ -366,8 +366,13 @@ elif "4." in selected_menu:
     with tr_col1:
         monthly_city_r = filtered_df.groupby(['월', '대상도시'])['평점'].mean().reset_index()
         fig_ct_trend = px.line(monthly_city_r, x='월', y='평점', color='대상도시', markers=True, 
-                               title="도시별 월별 평균 평점 추이", color_discrete_sequence=HANA_COLORS)
-        fig_ct_trend.update_layout(yaxis=dict(range=[4.0, 5.0])) 
+                               title="극성수기 평균 평점 추이 (인프라 과부하)", color_discrete_sequence=HANA_COLORS)
+        
+        # 2월(설/방학) 및 8월(여름휴가) 하이라이트 추가
+        fig_ct_trend.add_vrect(x0=1.5, x1=2.5, fillcolor="red", opacity=0.1, line_width=0, annotation_text="설/방학")
+        fig_ct_trend.add_vrect(x0=7.5, x1=8.5, fillcolor="red", opacity=0.1, line_width=0, annotation_text="여름휴가")
+        
+        fig_ct_trend.update_layout(yaxis=dict(range=[4.0, 5.0]), xaxis=dict(tickmode='linear', tick0=1, dtick=1)) 
         st.plotly_chart(fig_ct_trend, use_container_width=True)
     with tr_col2:
         rev_len_df = engine.get_review_length_analysis(filtered_df)
