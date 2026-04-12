@@ -176,22 +176,41 @@ elif "2." in selected_menu:
     )
 
     st.subheader("🚩 2-3. 다낭 특화 및 쇼핑 정책 대조")
+    # 시각화 배치를 위해 3개의 동일한 너비의 컬럼을 생성합니다.
     dc1, dc2, dc3 = st.columns(3)
+    
     with dc1:
-        danang_shop = filtered_df[filtered_df['대상도시'] == '다낭']['쇼핑횟수'].value_counts(normalize=True).sort_index()
-        others_shop = filtered_df[filtered_df['대상도시'] != '다낭']['쇼핑횟수'].value_counts(normalize=True).sort_index()
-        st.bar_chart(pd.DataFrame({"다낭": danang_shop, "타도시": others_shop}).fillna(0))
+        # 1. 다낭과 타 도시의 쇼핑 횟수 비중을 계산하여 데이터프레임으로 변환합니다.
+        danang_shop = filtered_df[filtered_df['대상도시'] == '다낭']['쇼핑횟수'].value_counts(normalize=True).sort_index().reset_index()
+        danang_shop.columns = ['쇼핑횟수', '비중'] # 컬럼명 설정
+        danang_shop['구분'] = '다낭' # 구분 컬럼 추가
+        
+        others_shop = filtered_df[filtered_df['대상도시'] != '다낭']['쇼핑횟수'].value_counts(normalize=True).sort_index().reset_index()
+        others_shop.columns = ['쇼핑횟수', '비중'] # 컬럼명 설정
+        others_shop['구분'] = '타도시' # 구분 컬럼 추가
+        
+        # 두 데이터를 하나로 합쳐서 시각화에 적합한 형태로 만듭니다.
+        shop_compare_df = pd.concat([danang_shop, others_shop])
+        
+        # Plotly를 사용하여 다른 그래프들과 높이 및 스타일을 맞춘 막대 그래프를 생성합니다.
+        fig_shop_comp = px.bar(shop_compare_df, x='쇼핑횟수', y='비중', color='구분', barmode='group',
+                               title="다낭 vs 타도시 쇼핑 비중 대조", color_discrete_sequence=[PRIMARY_COLOR, "#A69177"])
+        st.plotly_chart(fig_shop_comp, use_container_width=True) # 컨테이너 너비에 맞게 출력
+        
     with dc2:
+        # 2. 쇼핑 횟수에 따른 평균 가격 추이를 선 그래프로 시각화합니다.
         st.plotly_chart(px.line(engine.get_shopping_impact_analysis(filtered_df), x="쇼핑횟수", y="성인가격", 
-                                markers=True, title="쇼핑 횟수 x 평균 가격", color_discrete_sequence=[PRIMARY_COLOR]), use_container_width=True)
+                                markers=True, title="쇼핑 횟수 x 평균 가격 추이", color_discrete_sequence=[PRIMARY_COLOR]), use_container_width=True)
+    
     with dc3:
+        # 3. 도시별로 쇼핑 횟수당 공급된 상품의 수를 히스토그램으로 확인합니다.
         st.plotly_chart(px.histogram(filtered_df, x="쇼핑횟수", color="대상도시", barmode="group", 
-                                     title="도시별 쇼핑 횟수 공급량", color_discrete_sequence=HANA_COLORS), use_container_width=True)
+                                     title="도시별 쇼핑 횟수 공급량 분포", color_discrete_sequence=HANA_COLORS), use_container_width=True)
     
     render_analysis_box(
         "📊 쇼핑-가격 기대 불일치(Expectation Mismatch)에 따른 만족도 폭락 분석",
-        "📍 데이터 근거 (Data Basis)\n다낭 노선의 쇼핑 횟수별 '상품 평균 판매가'와 '실제 고객 평점'을 이중 축으로 대조한 지표입니다.",
-        "💡 그래프 해석 (Interpretation)\n일반적인 업계 상식인 '쇼핑 횟수와 가격의 역비례(저가-다쇼핑)' 공식이 다낭 핵심 라인업에서 완전히 붕괴된 기형적 구조가 관측됩니다. 쇼핑 2회 상품은 평균 60만 원대로 가성비 포지셔닝이 되어 평점이 가장 높게(4.66점) 방어되고 있습니다.\n반면, 전체 모객의 절반(5,257건)을 차지하는 '쇼핑 3회(Max)' 상품군들은 평균 가격이 100만 원 선으로 도리어 급등함에도, 현지 쇼핑 강요 횟수는 가장 많습니다. 결과적으로 \"비싼 돈을 지불하고도 쇼핑 센터를 3곳이나 돌아야 하는\" 극심한 **기대 불일치(Expectation Disconfirmation)**가 발생하여 전체 평점을 4.07점(최저점)으로 끌어내리는 브랜드 훼손의 주범이 되고 있습니다."
+        "다낭 노선의 쇼핑 횟수별 '상품 평균 판매가'와 '실제 고객 평점'을 이중 축으로 대조한 지표입니다.",
+        "일반적인 업계 상식인 '쇼핑 횟수와 가격의 역비례(저가-다쇼핑)' 공식이 다낭 핵심 라인업에서 완전히 붕괴된 기형적 구조가 관측됩니다. 쇼핑 2회 상품은 평균 60만 원대로 가성비 포지셔닝이 되어 평점이 가장 높게(4.66점) 방어되고 있습니다.\n반면, 전체 모객의 절반(5,257건)을 차지하는 '쇼핑 3회(Max)' 상품군들은 평균 가격이 100만 원 선으로 도리어 급등함에도, 현지 쇼핑 강요 횟수는 가장 많습니다. 결과적으로 \"비싼 돈을 지불하고도 쇼핑 센터를 3곳이나 돌아야 하는\" 극심한 **기대 불일치(Expectation Disconfirmation)**가 발생하여 전체 평점을 4.07점(최저점)으로 끌어내리는 브랜드 훼손의 주범이 되고 있습니다."
     )
 
 # ---------------------------------------------------------
@@ -217,7 +236,7 @@ elif "3." in selected_menu:
     render_analysis_box(
         "리뷰 수요 강도와 품질 임계치 교차 분석",
         "누적 리뷰 건수(수요)와 평균 평점 및 저평점 비중을 이중 축으로 비교 분석한 종합 품질 지표입니다.",
-        "분석 결과 다낭은 타 도시 대비 3.5배 이상의 압도적인 리뷰 볼륨을 기록하며 시장 점유율 1위의 지위를 확고히 하고 있으나, 저평점비중(%)이 16.8%에 달해 품질 리스크가 임계점에 도달했음을 보여줍니다. 반면 싱가포르는 리뷰 절대량은 적지만 저평점 비중이 5% 미만으로 매우 낮아, 판매 물량과 관계없이 안정적인 고객 가치를 전달하고 있습니다. 특히 다낭의 경우 저평점 비중 정밀 검증 테이블에서 나타나듯 물량이 늘어날수록 평점이 하락하는 '규모의 불경제' 현상이 관측됩니다. 이는 대규모 모객 과정에서 현지 랜드사의 가이드 배정 품질이 평준화되지 못하고 있음을 뜻하며, 단순한 판매량(Volume) 중심의 성과 지표에서 탈피하여 '저평점 비중 10% 이하 유지'와 같은 품질 연동형 KPI를 도입하는 것이 브랜드 가치를 방어하는 최우선 과제임을 시사합니다."
+        "분석 결과 다낭은 타 도시 대비 3.5배 이상의 압도적인 리뷰 볼륨을 기록하며 시장 점유율 1위의 지위를 확고히 하고 있으나, 저평점비중(%)이 11.0%에 달해 품질 리스크가 임계점에 도달했음을 보여줍니다. 반면 싱가포르는 리뷰 절대량은 적지만 저평점 비중이 10% 미만으로 매우 낮아, 판매 물량과 관계없이 안정적인 고객 가치를 전달하고 있습니다. 특히 다낭의 경우 저평점 비중 정밀 검증 테이블에서 나타나듯 물량이 늘어날수록 평점이 하락하는 '규모의 불경제' 현상이 관측됩니다. 이는 대규모 모객 과정에서 현지 랜드사의 가이드 배정 품질이 평준화되지 못하고 있음을 뜻하며, 단순한 판매량(Volume) 중심의 성과 지표에서 탈피하여 '저평점 비중 10% 이하 유지'와 같은 품질 연동형 KPI를 도입하는 것이 브랜드 가치를 방어하는 최우선 과제임을 시사합니다."
     )
 
     col_d1, col_d2 = st.columns(2)
@@ -267,15 +286,24 @@ elif "3." in selected_menu:
     )
 
     st.subheader("🔮 3-5. 기대 불일치 검증")
-    cb1, cb2, cb3 = st.columns([1.2, 1, 1])
-    with cb1: st.plotly_chart(px.scatter(engine.get_category_performance(filtered_df), x="성인가격", y="평점", 
+    # 시각화의 균형 잡힌 배치를 위해 3개의 균등한 열(Column)을 생성합니다.
+    cb1, cb2, cb3 = st.columns(3)
+    
+    with cb1: 
+        # 1. 상품군별 가격 대비 평점 성과를 버블 차트로 시각화합니다. (버블 크기는 상품수)
+        st.plotly_chart(px.scatter(engine.get_category_performance(filtered_df), x="성인가격", y="평점", 
                                          size="상품수", color="상품군", log_x=True, title="가격 vs 평점 버블맵", color_discrete_sequence=HANA_COLORS), use_container_width=True)
-    with cb2: st.plotly_chart(px.line(pd.DataFrame({"가격대": ["30-50만", "80-120만", "180만↑"], "수용도": [4.3, 3.1, 1.6]}), 
+    
+    with cb2: 
+        # 2. 가격대별로 고객들이 쇼핑 일정을 얼마나 수용하는지 지표를 선 그래프로 나타냅니다.
+        st.plotly_chart(px.line(pd.DataFrame({"가격대": ["30-50만", "80-120만", "180만↑"], "수용도": [4.3, 3.1, 1.6]}), 
                                      x="가격대", y="수용도", markers=True, title="가격별 쇼핑 수용도", color_discrete_sequence=[PRIMARY_COLOR]), use_container_width=True)
+    
     with cb3:
+        # 3. 각 도시별로 쇼핑 횟수가 늘어남에 따라 실제 평점이 어떻게 변하는지 분석합니다.
         shop_rating = filtered_df.groupby(['대상도시', '쇼핑횟수'])['평점'].mean().reset_index()
         st.plotly_chart(px.line(shop_rating, x="쇼핑횟수", y="평점", color="대상도시", markers=True, 
-                                title="도시별 쇼핑x평점", color_discrete_sequence=HANA_COLORS), use_container_width=True)
+                                title="도시별 쇼핑x평점 상관관계", color_discrete_sequence=HANA_COLORS), use_container_width=True)
     
     # [개선] 도시별 쇼핑 정책 매트릭스를 3열로 배치
     st.markdown("#### 📊 도시별 쇼핑 정책에 따른 가격-품질 매트릭스 (이중 축)")
